@@ -1,0 +1,25 @@
+body {
+    margin: 0;
+}
+#game {
+    text-align: center;
+    font-size: 0;
+}
+.row {
+    height: 30vmin;
+    white-space: nowrap;
+}
+.tile {
+    background: black;
+    width: 30vmin;
+    height: inherit;
+    display: inline-block;
+}
+.tile:hover {
+    background: green;
+}
+#settings {
+    height: 10vh;
+    width: 100%;
+    background: red;
+}
