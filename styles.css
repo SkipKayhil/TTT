@@ -1,5 +1,6 @@
 body {
     margin: 0;
+    background: #1B1C1D;
 }
 #game {
     text-align: center;
@@ -10,16 +11,21 @@ body {
     white-space: nowrap;
 }
 .tile {
-    background: black;
     width: 30vmin;
     height: inherit;
     display: inline-block;
 }
 .tile:hover {
-    background: green;
+    background: #39783f;
 }
 #settings {
     height: 10vh;
     width: 100%;
-    background: red;
+    background: #ef9849;
+}
+.x {
+    background: #395c78;
+}
+.o {
+    background: #bd3b3b;
 }
