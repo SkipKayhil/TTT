@@ -19,7 +19,7 @@ public class Player {
 
     public void play(int space) {
         spaces.add(space);
-        hasWon();
+        win = hasWon();
     }
 
     public ArrayList getSpaces() {
@@ -30,9 +30,9 @@ public class Player {
         return win;
     }
 
-    public void hasWon() {
+    public boolean hasWon() {
         if (spaces.size() < 3) {
-            return;
+            return false;
         }
         for (int i = 0; i < spaces.size() - 2; i++) {
             int x = spaces.get(i);
@@ -41,11 +41,11 @@ public class Player {
                 for (int k = j + 1; k < spaces.size(); k++) {
                     int z = spaces.get(k);
                     if ((x + y + z) == 15) {
-                        win = true;
-                        return;
+                        return true;
                     }
                 }
             }
         }
+        return false;
     }
 }
