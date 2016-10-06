@@ -11,18 +11,18 @@ public class TTT {
     private boolean turn;
     private String[][] board;
     private String winner;
-    private static final HashMap<Integer, Integer> map;
+    private static final HashMap<Integer, Integer> ID_MAP;
     static {
-        map = new HashMap<Integer, Integer>();
-        map.put(2, 00);
-        map.put(7, 01);
-        map.put(6, 02);
-        map.put(9, 10);
-        map.put(5, 11);
-        map.put(1, 12);
-        map.put(4, 20);
-        map.put(3, 21);
-        map.put(8, 22);
+        ID_MAP = new HashMap<Integer, Integer>();
+        ID_MAP.put(2, 00);
+        ID_MAP.put(7, 01);
+        ID_MAP.put(6, 02);
+        ID_MAP.put(9, 10);
+        ID_MAP.put(5, 11);
+        ID_MAP.put(1, 12);
+        ID_MAP.put(4, 20);
+        ID_MAP.put(3, 21);
+        ID_MAP.put(8, 22);
     }
 
     public TTT() {
@@ -32,18 +32,23 @@ public class TTT {
     public void newGame() {
         x = new Player('X');
         o = new Player('O');
-        board = new String[][]{{"2", "7", "6"},{"9", "5", "1"}, {"4", "3", "8"}};
+        board = new String[][] {
+            {"2", "7", "6"},
+            {"9", "5", "1"},
+            {"4", "3", "8"}};
         turn = true;
     }
     public boolean tryMakePlay(int space) {
         if (!x.contains(space) && !o.contains(space)) {
             getTurn().play(space);
-            int row = map.get(space) / 10;
-            int col = map.get(space) % 10;
+            int row = ID_MAP.get(space) / 10;
+            int col = ID_MAP.get(space) % 10;
             board[row][col] = String.valueOf(getTurn().getChar());
             turn = !turn;
             return true;
-        } else return false;
+        } else {
+            return false;
+        }
     }
 
     private Player getTurn() {
@@ -69,7 +74,7 @@ public class TTT {
 
     public ArrayList<String> getBoard() {
         ArrayList<String> toReturn = new ArrayList<String>();
-        for(String[] boardRow: board){
+        for (String[] boardRow: board) {
             String printRow = " ";
             for (String s: boardRow) {
                 if (s != null) {

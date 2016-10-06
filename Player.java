@@ -31,7 +31,9 @@ public class Player {
     }
 
     public void hasWon() {
-        if (spaces.size() < 3) return;
+        if (spaces.size() < 3) {
+            return;
+        }
         for (int i = 0; i < spaces.size() - 2; i++) {
             int x = spaces.get(i);
             for (int j = i + 1; j < spaces.size() - 1; j++) {
