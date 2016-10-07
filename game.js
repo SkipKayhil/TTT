@@ -14,8 +14,7 @@ function squareClicked(square){
     // 2. make game playable with AI
 
     if (square.className.includes("empty")) {
-        square.className.replace("empty", getTurn() % 2 == 0 ? "o" : "x");
-        //checkWin();
+        square.className = getTurn() % 2 == 0 ? "tile o" : "tile x";
     }
 }
 
