@@ -15,7 +15,7 @@ body {
     height: inherit;
     display: inline-block;
 }
-.tile:hover {
+.empty:hover {
     background: #39783f;
 }
 #settings {
