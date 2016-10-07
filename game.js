@@ -15,7 +15,7 @@ function squareClicked(square){
 
     if (square.className.includes("empty")) {
         square.className.replace("empty", getTurn() % 2 == 0 ? "o" : "x");
-        checkWin()
+        //checkWin();
     }
 }
 
