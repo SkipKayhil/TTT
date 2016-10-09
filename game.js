@@ -14,15 +14,55 @@ function squareClicked(square){
     // 2. make game playable with AI
 
     if (square.className.includes("empty")) {
-        square.className = getTurn() % 2 == 0 ? "tile o" : "tile x";
+        //how do I refernce a value I want passed as an argument in an arrow function
+        //there's definitely some way to not declare this variable right?
+        //can I make an anonymous function here or do I have to define t externally?
+        var player = getTurn() ? "o" : "x";
+        square.className = square.className.replace("empty", player);
+        checkWin(player,
+            [].slice.call(toArray(document.getElementsByClassName(player))),
+            15
+        );
+    }
+}
+
+function toArray(myCollection) {
+    var a = [];
+    [].forEach.call(myCollection, (value) => {
+        a.push(parseInt(value.id));
+    });
+    return a;
+}
+
+function checkWin(player, numbers, target, partial) {
+    var s, n, remaining;
+
+    partial = partial || [];
+
+    s = partial.reduce((a, b) => {
+        return parseInt(a) + parseInt(b);
+    }, 0);
+
+    if (s === target) {
+        console.log(player + " has won!")
+    }
+
+    if (s >= target) {
+        return;  // if we reach the number why bother to continue
+    }
+
+    for (var i = 0; i < numbers.length; i++) {
+        n = numbers[i];
+        remaining = numbers.slice(i + 1);
+        checkWin(player, remaining, target, partial.concat([n]));
     }
 }
 
 var getTurn = (() => {
-    var turns = 0;
+    var turns = true;
 
     return () => {
-        return ++turns;
+        return turns = !turns;
     }
 })();
 
