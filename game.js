@@ -44,6 +44,7 @@ function checkWin(player, numbers, target, partial) {
     }, 0);
 
     if (s === target) {
+        if (partial.length != 3) return;
         console.log(player + " has won!")
     }
 
