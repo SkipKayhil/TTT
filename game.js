@@ -37,15 +37,17 @@ function squareClicked(square, getTurn){
     console.log(oldGetTurn() + " clicked on " + square.id);
 
     //basically here's the logic I want to implement:
-    // 1. make game playable with two people
-    // 1b. make game RE-playable
+    // 1c. make the game beautiful
     // 2. make game playable with AI
 
     if (square.className.includes("empty")) {
         //how do I refernce a value I want passed as an argument in an arrow function
         //there's definitely some way to not declare this variable right?
         //can I make an anonymous function here or do I have to define t externally?
-        var player = getTurn() ? "o" : "x";
+        doTurn(getTurn() ? "o" : "x");
+    }
+
+    function doTurn(player) {
         square.className = setTileType(square, player);
         checkWin(player,
             [].slice.call(toArray(document.getElementsByClassName(player))),
@@ -104,7 +106,12 @@ function hasWon(player, partial) {
         middle.onclick = () => {
             setup();
         }
-        middle.appendChild(document.createElement("div").appendChild(document.createTextNode("New Game")));
+
+        var p = document.createElement("DIV");
+        p.appendChild(document.createTextNode("NEW GAME"));
+        console.log(p);
+        middle.appendChild(p);
+
         middle.className = setTileType(middle, "new-game");
     }
 }
@@ -123,6 +130,7 @@ function setTileType(tile, newType) {
 }
 
 //TODO: get rid of all this old code down here
+//      this is only used for console debugging
 function oldGetTurn() {
     console.log(getNumElements("x") + " x, " + getNumElements("o") + " o");
     return getNumElements("x") == getNumElements("o") ? "x" : "o";
