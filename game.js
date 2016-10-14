@@ -1,14 +1,40 @@
-window.onload = setup();
+window.onload = () => {
+    //setupViewport();
+    setupGame();
+}
 
-function setup() {
+window.onresize = (event) => {
+    //setupViewport();
+}
+
+function setupViewport() {
+    var width = document.documentElement.clientWidth;
+    var height = document.documentElement.clientHeight;
+
+    if (width > height) { //landscape
+        if (width < 960) { //mobile
+            document.getElementById("navbar").style.height = "48px";
+        } else { //tablet
+            document.getElementById("navbar").style.height = "64px";
+        }
+    } else { //portrait
+        if (width < 600) { //phone
+            document.getElementById("navbar").style.height = "56px";
+        } else { //tablet
+            document.getElementById("navbar").style.height = "64px";
+        }
+    }
+
+
+}
+
+function setupGame() {
     var getTurn = setupTurn();
-
-    setLight();
 
     [].forEach.call(document.getElementsByClassName("tile"), (value) => {
         value.onclick = () => {squareClicked(value, getTurn)};
 
-        value.className = setTileType(value, "empty");
+        value.className = "tile empty enabled";
 
         while(value.firstChild)
             value.removeChild(value.firstChild);
@@ -23,36 +49,48 @@ function setupTurn() {
     }
 }
 
-function setLight() {
-    [].forEach.call(document.getElementsByTagName("*"), (element) => {
-        if (element.className.contains("light") || element.className.contains("dark"))
-            element.className = element.className.replace("dark", "light");
-        else {
-            element.className += " light";
-        }
-    });
-}
-
 function squareClicked(square, getTurn){
     console.log(oldGetTurn() + " clicked on " + square.id);
 
     //basically here's the logic I want to implement:
-    // 1c. make the game beautiful
-    // 2. make game playable with AI
+    // 1    stalemate detection
+    // 1b.  Win/Loss notification
+    // 2.   make game playable with AI
+    // 2a.  Add functionality to enable AI (X, O, OFF)
+    // 2b.  Add functionality to set AI difficulty (Easy, Good, Hard
+    // 2c.  Add easy AI mode
+    // 2d.  Add good AI mode
+    // 2e.  Add hardcoded hard AI mode
 
     if (square.className.includes("empty")) {
-        //how do I refernce a value I want passed as an argument in an arrow function
-        //there's definitely some way to not declare this variable right?
-        //can I make an anonymous function here or do I have to define t externally?
         doTurn(getTurn() ? "o" : "x");
     }
 
     function doTurn(player) {
-        square.className = setTileType(square, player);
+        square.className = setTileType(square, player).replace(" enabled", "");
         checkWin(player,
             [].slice.call(toArray(document.getElementsByClassName(player))),
             15
         );
+        if (isGameOver()) {
+            gameOver();
+        }
+
+        function isGameOver() {
+            var isWin = false;
+            var noEmpty = true;
+
+            [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
+                if (tile.className.contains("win")) {
+                    isWin = true;
+                }
+                if (tile.className.contains("empty")) {
+                    noEmpty = false;
+                }
+            });
+
+            return isWin || noEmpty;
+        }
     }
 }
 
@@ -89,31 +127,35 @@ function checkWin(player, numbers, target, partial) {
     }
 }
 
-function hasWon(player, partial) {
-    console.log(player + " has won!");
-
+function gameOver() {
     [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
         tile.onclick = () => {};
-    });
-
-    partial.forEach((value) => {
-        document.getElementById(value).className += " win";
+        if (tile.className.contains("enabled")) tile.className = tile.className.replace(" enabled", "");
+        if (!tile.className.contains("win")) tile.className += " disabled";
     });
 
     setMiddle(document.getElementById("5"));
 
     function setMiddle(middle) {
         middle.onclick = () => {
-            setup();
+            setupGame();
         }
 
         var p = document.createElement("DIV");
         p.appendChild(document.createTextNode("NEW GAME"));
-        console.log(p);
         middle.appendChild(p);
 
-        middle.className = setTileType(middle, "new-game");
+        middle.className = middle.className.replace(" disabled", "");
+        middle.className += " enabled";
     }
+}
+
+function hasWon(player, partial) {
+    console.log(player + " has won!");
+
+    partial.forEach((value) => {
+        document.getElementById(value).className += " win";
+    });
 }
 
 function setTileType(tile, newType) {

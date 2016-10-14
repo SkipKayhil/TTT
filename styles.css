@@ -5,75 +5,72 @@ body {
     background: #FAFAFA;
     font-family: 'Roboto', sans-serif;
 }
-body.light {
-    background: #FAFAFA;
-}
-body.dark {
-
-}
 #container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    align-content: center;
+    justify-content: center;
 }
 #game {
     font-size: 0;
-    width: 100vmin;
+    width: 90vmin;
     display: flex;
+    flex: 3;
     flex-wrap: wrap;
 }
-.tile.light {
+.tile {
     margin: 2vmin;
-    width: 29vmin;
-    height: 29vmin;
+    width: 26vmin;
+    height: 26vmin;
+    font-size: 5vmin;
+    font-weight: 500;
+    text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    position: relative;
     background: white;
+    transition: background 0.1s ease-in-out;
+    /*dp2*/
     box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
 }
-.empty::after, .new-game::after{
+
+.tile.x {
+    background: #3f51b5;
+    color: white;
+}
+.tile.o {
+    background:  #e91e63;
+    color: white;
+}
+.tile.enabled::after {
     content: "";
-    display: inline-block;
-    width: 29vmin;
-    height: 29vmin;
-    opacity: 0;
-    transition: opacity 0.1s ease-in-out;
-    box-shadow: 0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12), 0px 5px 5px -3px rgba(0, 0, 0, 0.2);
-}
-.empty:hover::after, .new-game:hover::after {
-    opacity: 1;
-}
-.empty:active::after, .new-game:active::after {
-    opacity: 0;
-}
-.new-game {
-    font-size: 5vmin;
-    line-height: 5vmin;
-    text-align: center;
-    align-items: center;
-    font-weight: 500;
-    color: black;
-    position: relative;
-}
-.new-game::after {
     position: absolute;
     left: 0; top: 0; right: 0; bottom: 0;
+    width: inherit;
+    height: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    /*dp*/
+    box-shadow: 0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12), 0px 5px 5px -3px rgba(0, 0, 0, 0.2);
 }
-#settings {
-    height: 0vh;
+.tile.enabled:hover::after {
+    opacity: 1;
+}
+.tile.enabled:active::after {
+    opacity: 0;
+}
+.tile.disabled {
+    box-shadow: none;
+}
+.tile.x.disabled {
+    background: #e8eaf6;
+}
+.tile.o.disabled {
+    background: #fce4ec;
+}
+#navbar {
     width: 100%;
     background: #ef9849;
-}
-.x.light {
-    background: #3f51b5;
-}
-.x.win {
-
-}
-.o.light {
-    background:  #e91e63;
-}
-.o.win {
-
 }
