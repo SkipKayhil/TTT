@@ -1,29 +1,35 @@
-body {
+html, body {
     margin: 0;
     padding: 0;
 
     background: #FAFAFA;
     font-family: 'Roboto', sans-serif;
+    height: 100%;
 }
 #container {
     display: flex;
-    flex-direction: column;
+    flex-flow: column nowrap;
     align-items: center;
-    align-content: center;
-    justify-content: center;
+    text-align: center;
+    height: 100%;
+    width: 100%;
 }
 #game {
-    font-size: 0;
-    width: 90vmin;
     display: flex;
-    flex: 3;
-    flex-wrap: wrap;
+    font-size: 0;
+    /*width: 90vmin;*/
+    /*flex: 3;*/
+    /*flex-direction: row;
+    flex: 3 100%;*/
+    justify-content: space-around;
+    flex-flow: row wrap;
+    height: inherit;
 }
 .tile {
-    margin: 2vmin;
-    width: 26vmin;
-    height: 26vmin;
-    font-size: 5vmin;
+    margin: 2%;
+    width: 29%;
+    height: 29%;
+    font-size: 4vmin;
     font-weight: 500;
     text-align: center;
     display: flex;
@@ -48,8 +54,8 @@ body {
     content: "";
     position: absolute;
     left: 0; top: 0; right: 0; bottom: 0;
-    width: inherit;
-    height: inherit;
+    width: auto;
+    height: auto;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     /*dp*/

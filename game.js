@@ -1,31 +1,47 @@
 window.onload = () => {
-    //setupViewport();
+    setupViewport();
     setupGame();
 }
 
 window.onresize = (event) => {
-    //setupViewport();
+    setupViewport();
 }
 
 function setupViewport() {
     var width = document.documentElement.clientWidth;
     var height = document.documentElement.clientHeight;
+    var navHeight;
+    var gameWidth;
 
-    if (width > height) { //landscape
-        if (width < 960) { //mobile
-            document.getElementById("navbar").style.height = "48px";
-        } else { //tablet
-            document.getElementById("navbar").style.height = "64px";
+    if (width > height) {       //landscape
+        var min = height;
+        if (width < 960) {          //phone
+            navHeight = 48;
+        } else {                    //tablet
+            navHeight = 64;
         }
-    } else { //portrait
-        if (width < 600) { //phone
-            document.getElementById("navbar").style.height = "56px";
-        } else { //tablet
-            document.getElementById("navbar").style.height = "64px";
+    } else {                    //portrait
+        var min = width;
+        if (width < 600) {          //phone
+            navHeight = 56;
+        } else {                    //tablet
+            navHeight = 64;
         }
     }
 
+    gameWidth = min - navHeight;
 
+    document.getElementById("navbar").style.height = navHeight + "px";
+    document.getElementById("game").style.width = gameWidth + "px";
+    console.log(document.getElementById("game").clientHeight);
+    //
+    // [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
+    //     var temp = (29 / 33 * (gameWidth) / 3);
+    //     console.log(temp);
+    //     tile.style.height =  temp + "px";
+    //     tile.style.width = tile.style.height;
+    //     tile.style.margin = (4 / 33 * gameWidth / 3 / 2) + "px";
+    // });
 }
 
 function setupGame() {
