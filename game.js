@@ -10,38 +10,31 @@ window.onresize = (event) => {
 function setupViewport() {
     var width = document.documentElement.clientWidth;
     var height = document.documentElement.clientHeight;
-    var navHeight;
-    var gameWidth;
+    var navHeight, gameWidth, gameHeight, footHeight;
 
     if (width > height) {       //landscape
-        var min = height;
         if (width < 960) {          //phone
             navHeight = 48;
         } else {                    //tablet
             navHeight = 64;
         }
+        gameHeight = (height - navHeight) + "px";
+        gameWidth = gameHeight;
+        footHeight = "0px";
     } else {                    //portrait
-        var min = width;
         if (width < 600) {          //phone
             navHeight = 56;
         } else {                    //tablet
             navHeight = 64;
         }
+        gameWidth = width * .96 + "px";
+        gameHeight = width + "px";
+        footHeight = navHeight + "px";
     }
-
-    gameWidth = min - navHeight;
-
     document.getElementById("navbar").style.height = navHeight + "px";
-    document.getElementById("game").style.width = gameWidth + "px";
-    console.log(document.getElementById("game").clientHeight);
-    //
-    // [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
-    //     var temp = (29 / 33 * (gameWidth) / 3);
-    //     console.log(temp);
-    //     tile.style.height =  temp + "px";
-    //     tile.style.width = tile.style.height;
-    //     tile.style.margin = (4 / 33 * gameWidth / 3 / 2) + "px";
-    // });
+    document.getElementById("footer").style.height = footHeight;
+    document.getElementById("game").style.width = gameWidth;
+    document.getElementById("game").style.height = gameHeight;
 }
 
 function setupGame() {
@@ -69,8 +62,7 @@ function squareClicked(square, getTurn){
     console.log(oldGetTurn() + " clicked on " + square.id);
 
     //basically here's the logic I want to implement:
-    // 1    stalemate detection
-    // 1b.  Win/Loss notification
+    // 1b.  Win/Loss notification - what did I mean by this? the colors?
     // 2.   make game playable with AI
     // 2a.  Add functionality to enable AI (X, O, OFF)
     // 2b.  Add functionality to set AI difficulty (Easy, Good, Hard

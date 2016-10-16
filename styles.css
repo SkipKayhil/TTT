@@ -9,6 +9,7 @@ html, body {
 #container {
     display: flex;
     flex-flow: column nowrap;
+    justify-content: space-between;;
     align-items: center;
     text-align: center;
     height: 100%;
@@ -17,13 +18,10 @@ html, body {
 #game {
     display: flex;
     font-size: 0;
-    /*width: 90vmin;*/
-    /*flex: 3;*/
-    /*flex-direction: row;
-    flex: 3 100%;*/
     justify-content: space-around;
     flex-flow: row wrap;
-    height: inherit;
+    align-self: center;
+    /*margin: 2vmin;*/
 }
 .tile {
     margin: 2%;
