@@ -106,7 +106,7 @@ function doPlayerTurn(square, getTurn) {
 }
 
 function doAITurn(getTurn) {
-    squareClicked(getEasyAITurn(), getTurn);
+    squareClicked(getMedAITurn(), getTurn);
 }
 
 function getEasyAITurn() {
@@ -116,6 +116,47 @@ function getEasyAITurn() {
     } else {
         return getEasyAITurn();
     }
+}
+
+function getMedAITurn() {
+    //try to Win
+    var player = getAI() == "ai-x" ? "x" : "o";
+    var play = 0;
+    var squares = toArray(document.getElementsByClassName(player));
+    squares.forEach((square) => {
+        var squares2 = squares.slice(squares.indexOf(square) + 1, squares.length);
+        //console.log(squares2);
+        squares2.forEach((square2) => {
+            var id = 15 - parseInt(square) - parseInt(square2);
+            //console.log(id);
+            if (id > 0 && id < 10 && document.getElementById(id).className.contains("empty")) {
+                play = document.getElementById(id);
+                console.log("IF I GO HERE I WIN " + id + " " + square);
+                return;
+            }
+        })
+    });
+    if (play != 0) return play;
+
+    //try to not lose
+    player = getAI() == "ai-x" ? "o" : "x";
+    squares = toArray(document.getElementsByClassName(player));
+    squares.forEach((square) => {
+        var squares2 = squares.slice(squares.indexOf(square) + 1, squares.length);
+        squares2.forEach((square2) => {
+            var id = 15 - parseInt(square) - parseInt(square2);
+            console.log("id: " + id);
+            console.log("1: " + square + "| 2: " + square2);
+            if (id > 0 && id < 10 && document.getElementById(id).className.contains("empty")) {
+                play = document.getElementById(id);
+                console.log("IF I GO HERE I BLOCK " + id + " " + square);
+                return;
+            }
+        })
+    });
+    if (play != 0) return play;
+    //else random
+    return getEasyAITurn();
 }
 
 function toArray(myCollection) {
