@@ -8,7 +8,19 @@
     </head>
     <body>
         <div id="container">
-            <div id="navbar"></div>
+            <div id="navbar">
+                <a href="https://skipkayhil.github.io" class="button">
+                    <i class="material-icons">home</i>
+                </a>
+                <div class="button" onclick="toggleSettings()">
+                    <i class="material-icons">more_vert</i>
+                </div>
+            </div>
+            <div id="settings" class="hidden">
+                <div id="ai-x" class="menu-item" onclick="settingClicked(this.id)">Set AI to X</div>
+                <div id="ai-o" class="menu-item" onclick="settingClicked(this.id)">Set AI to O</div>
+                <div id="ai-off" class="menu-item" onclick="settingClicked(this.id)">Disable AI</div>
+            </div>
             <div id="game">
                 <div id="2" class="tile empty"></div>
                 <div id="7" class="tile empty"></div>

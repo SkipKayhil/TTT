@@ -10,28 +10,39 @@ window.onresize = (event) => {
 function setupViewport() {
     var width = document.documentElement.clientWidth;
     var height = document.documentElement.clientHeight;
-    var navHeight, gameWidth, gameHeight, footHeight;
+    var navHeight, gameWidth, gameHeight, footHeight, buttonMargin, buttonPadding;
 
     if (width > height) {       //landscape
         if (width < 960) {          //phone
             navHeight = 48;
+            buttonMargin = "0px 12px";
+            buttonPadding = "12px";
         } else {                    //tablet
             navHeight = 64;
+            buttonMargin = "4px 8px";
+            buttonPadding = "16px";
         }
-        gameHeight = (height - navHeight) + "px";
+        gameHeight = (height - 2 * navHeight) + "px";
         gameWidth = gameHeight;
-        footHeight = "0px";
     } else {                    //portrait
         if (width < 600) {          //phone
             navHeight = 56;
+            buttonMargin = "0px";
+            buttonPadding = "16px";
         } else {                    //tablet
             navHeight = 64;
+            buttonMargin = "4px 8px";
+            buttonPadding = "16px";
         }
         gameWidth = width * .96 + "px";
         gameHeight = width + "px";
-        footHeight = navHeight + "px";
     }
+    footHeight = navHeight + "px";
     document.getElementById("navbar").style.height = navHeight + "px";
+    [].forEach.call(document.getElementsByClassName("button"), (button) => {
+        button.style.margin = buttonMargin;
+        button.style.padding = buttonPadding;
+    });
     document.getElementById("footer").style.height = footHeight;
     document.getElementById("game").style.width = gameWidth;
     document.getElementById("game").style.height = gameHeight;
@@ -41,13 +52,15 @@ function setupGame() {
     var getTurn = setupTurn();
 
     [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-        value.onclick = () => {squareClicked(value, getTurn)};
+        value.onclick = () => {doPlayerTurn(value, getTurn)};
 
         value.className = "tile empty enabled";
 
         while(value.firstChild)
             value.removeChild(value.firstChild);
     });
+
+    if (getAI() == "ai-x") doAITurn(getTurn);
 }
 
 function setupTurn() {
@@ -61,17 +74,19 @@ function setupTurn() {
 function squareClicked(square, getTurn){
     console.log(oldGetTurn() + " clicked on " + square.id);
 
-    //basically here's the logic I want to implement:
-    // 1b.  Win/Loss notification - what did I mean by this? the colors?
+    //TODO: basically here's the logic I want to implement:
+    // 1b.      Win/Loss notification - what did I mean by this? the colors?
     // 2.   make game playable with AI
-    // 2a.  Add functionality to enable AI (X, O, OFF)
+    // 2a.      Add functionality to enable AI (X, O, OFF)
     // 2b.  Add functionality to set AI difficulty (Easy, Good, Hard
-    // 2c.  Add easy AI mode
+    // 2c.      Add easy AI mode
     // 2d.  Add good AI mode
     // 2e.  Add hardcoded hard AI mode
+    // 2f.  Add logical hard AI mode?
+    // 3.   Add safari prefixes because apparently webkit has to be special
 
     if (square.className.includes("empty")) {
-        doTurn(getTurn() ? "o" : "x");
+        return doTurn(getTurn() ? "o" : "x");
     }
 
     function doTurn(player) {
@@ -80,25 +95,26 @@ function squareClicked(square, getTurn){
             [].slice.call(toArray(document.getElementsByClassName(player))),
             15
         );
-        if (isGameOver()) {
-            gameOver();
-        }
+        return !checkGameOver();
+    }
+}
 
-        function isGameOver() {
-            var isWin = false;
-            var noEmpty = true;
+function doPlayerTurn(square, getTurn) {
+    if (squareClicked(square, getTurn) && getAI() != "ai-off") {
+        doAITurn(getTurn);
+    }
+}
 
-            [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
-                if (tile.className.contains("win")) {
-                    isWin = true;
-                }
-                if (tile.className.contains("empty")) {
-                    noEmpty = false;
-                }
-            });
+function doAITurn(getTurn) {
+    squareClicked(getEasyAITurn(), getTurn);
+}
 
-            return isWin || noEmpty;
-        }
+function getEasyAITurn() {
+    var rand = Math.floor(Math.random() * 9) + 1;
+    if (document.getElementById(rand).className.contains("empty")) {
+        return document.getElementById(rand);
+    } else {
+        return getEasyAITurn();
     }
 }
 
@@ -135,26 +151,45 @@ function checkWin(player, numbers, target, partial) {
     }
 }
 
-function gameOver() {
+function checkGameOver() {
+    var isWin = false;
+    var noEmpty = true;
+
     [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
-        tile.onclick = () => {};
-        if (tile.className.contains("enabled")) tile.className = tile.className.replace(" enabled", "");
-        if (!tile.className.contains("win")) tile.className += " disabled";
+        if (tile.className.contains("win")) {
+            isWin = true;
+        }
+        if (tile.className.contains("empty")) {
+            noEmpty = false;
+        }
     });
 
-    setMiddle(document.getElementById("5"));
+    if ((isWin || noEmpty) && !document.getElementById("5").firstChild) {
+        gameOver();
+        return true;
+    } else return false;
 
-    function setMiddle(middle) {
-        middle.onclick = () => {
-            setupGame();
+    function gameOver() {
+        [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
+            tile.onclick = () => {};
+            if (tile.className.contains("enabled")) tile.className = tile.className.replace(" enabled", "");
+            if (!tile.className.contains("win")) tile.className += " disabled";
+        });
+
+        setMiddle(document.getElementById("5"));
+
+        function setMiddle(middle) {
+            middle.onclick = () => {
+                setupGame();
+            }
+
+            var p = document.createElement("DIV");
+            p.appendChild(document.createTextNode("NEW GAME"));
+            middle.appendChild(p);
+
+            middle.className = middle.className.replace(" disabled", "");
+            middle.className += " enabled";
         }
-
-        var p = document.createElement("DIV");
-        p.appendChild(document.createTextNode("NEW GAME"));
-        middle.appendChild(p);
-
-        middle.className = middle.className.replace(" disabled", "");
-        middle.className += " enabled";
     }
 }
 
@@ -177,6 +212,29 @@ function setTileType(tile, newType) {
         return tile.className.replace("empty", newType);
     else
         return tile.className;
+}
+
+function toggleSettings() {
+    if (document.getElementById("settings").className == "hidden") {
+        document.getElementById("settings").className = "visible";
+    } else {
+        document.getElementById("settings").className = "hidden";
+    }
+}
+
+var getAI =
+    () => {
+        return "ai-off";
+    };
+
+function settingClicked(id) {
+    getAI = () => {
+        return id;
+    };
+    console.log(getAI());
+
+    toggleSettings();
+    setupGame();
 }
 
 //TODO: get rid of all this old code down here
