@@ -1,6 +1,10 @@
 window.onload = () => {
     setupViewport();
-    setupGame();
+    var doSetup = setupGame(setupGameTree());
+    [].forEach.call(document.getElementsByClassName("menu-item"), (item) => {
+        item.onclick = getSettingClicked(doSetup, item.id);
+    });
+    doSetup();
 }
 
 window.onresize = (event) => {
@@ -48,19 +52,26 @@ function setupViewport() {
     document.getElementById("game").style.height = gameHeight;
 }
 
-function setupGame() {
-    var getTurn = setupTurn();
+var setupGame = function(gameTree) {
+    return function setup() {
+        var getTurn = setupTurn();
+        var squareClicked = setupSquareClick(getTurn, setup);
 
-    [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-        value.onclick = () => {doPlayerTurn(value, getTurn)};
+        [].forEach.call(document.getElementsByClassName("tile"), (value) => {
+            value.onclick = () => {
+                if (squareClicked(value) && getAI() != "off") {
+                    doAITurn(squareClicked);
+                }
+            };
 
-        value.className = "tile empty enabled";
+            value.className = "tile empty enabled";
 
-        while(value.firstChild)
-            value.removeChild(value.firstChild);
-    });
+            while(value.firstChild)
+                value.removeChild(value.firstChild);
+        });
 
-    if (getAI() == "ai-x") doAITurn(getTurn);
+        if (getAI() == "x") doAITurn(squareClicked);
+    }
 }
 
 function setupTurn() {
@@ -71,42 +82,36 @@ function setupTurn() {
     }
 }
 
-function squareClicked(square, getTurn){
-    console.log(oldGetTurn() + " clicked on " + square.id);
+function setupSquareClick(getTurn, doSetup) {
+    return function(square){
+        console.log(oldGetTurn() + " clicked on " + square.id);
 
-    //TODO: basically here's the logic I want to implement:
-    // 1b.      Win/Loss notification - what did I mean by this? the colors?
-    // 2.   make game playable with AI
-    // 2a.      Add functionality to enable AI (X, O, OFF)
-    // 2b.  Add functionality to set AI difficulty (Easy, Good, Hard
-    // 2c.      Add easy AI mode
-    // 2d.  Add good AI mode
-    // 2e.  Add hardcoded hard AI mode
-    // 2f.  Add logical hard AI mode?
-    // 3.   Add safari prefixes because apparently webkit has to be special
+        //TODO: basically here's the logic I want to implement:
+        // 1b.      Win/Loss notification - what did I mean by this? the colors?
+        // 2.   make game playable with AI
+        // 2a.      Add functionality to enable AI (X, O, OFF)
+        // 2b.  Add functionality to set AI difficulty (Easy, Good, Hard
+        // 2c.      Add easy AI mode
+        // 2d.  Add good AI mode
+        // 2e.  Add hardcoded hard AI mode
+        // 2f.  Add logical hard AI mode?
+        // 3.   Add safari prefixes because apparently webkit has to be special
 
-    if (square.className.includes("empty")) {
-        return doTurn(getTurn() ? "o" : "x");
-    }
+        if (square.className.includes("empty")) {
+            return doTurn(getTurn() ? "o" : "x");
+        }
 
-    function doTurn(player) {
-        square.className = setTileType(square, player).replace(" enabled", "");
-        checkWin(player,
-            [].slice.call(toArray(document.getElementsByClassName(player))),
-            15
-        );
-        return !checkGameOver();
-    }
-}
-
-function doPlayerTurn(square, getTurn) {
-    if (squareClicked(square, getTurn) && getAI() != "ai-off") {
-        doAITurn(getTurn);
+        function doTurn(player) {
+            square.className = setTileType(square, player).replace(" enabled", "");
+            if (checkWin(player, toIdArray(document.getElementsByClassName(player)), 15))
+                hasWon();
+            return !checkGameOver(doSetup);
+        }
     }
 }
 
-function doAITurn(getTurn) {
-    squareClicked(getMedAITurn(), getTurn);
+var doAITurn = function(squareClicked) {
+    squareClicked(getMedAITurn());
 }
 
 function getEasyAITurn() {
@@ -119,47 +124,47 @@ function getEasyAITurn() {
 }
 
 function getMedAITurn() {
+    var play = null;
     //try to Win
-    var player = getAI() == "ai-x" ? "x" : "o";
-    var play = 0;
-    var squares = toArray(document.getElementsByClassName(player));
-    squares.forEach((square) => {
-        var squares2 = squares.slice(squares.indexOf(square) + 1, squares.length);
-        //console.log(squares2);
-        squares2.forEach((square2) => {
-            var id = 15 - parseInt(square) - parseInt(square2);
-            //console.log(id);
-            if (id > 0 && id < 10 && document.getElementById(id).className.contains("empty")) {
-                play = document.getElementById(id);
-                console.log("IF I GO HERE I WIN " + id + " " + square);
-                return;
-            }
-        })
-    });
-    if (play != 0) return play;
+    play = findThirdTile(toIdArray(document.getElementsByClassName(getAI())));
+    if (play != null) {
+        //console.log(play.id + " to win");
+        return play;
+    }
 
     //try to not lose
-    player = getAI() == "ai-x" ? "o" : "x";
-    squares = toArray(document.getElementsByClassName(player));
-    squares.forEach((square) => {
-        var squares2 = squares.slice(squares.indexOf(square) + 1, squares.length);
-        squares2.forEach((square2) => {
-            var id = 15 - parseInt(square) - parseInt(square2);
-            console.log("id: " + id);
-            console.log("1: " + square + "| 2: " + square2);
-            if (id > 0 && id < 10 && document.getElementById(id).className.contains("empty")) {
-                play = document.getElementById(id);
-                console.log("IF I GO HERE I BLOCK " + id + " " + square);
-                return;
-            }
-        })
-    });
-    if (play != 0) return play;
+    play = findThirdTile(toIdArray(document.getElementsByClassName(getNotAI())));
+    if (play != null) {
+        //console.log(play.id + " to block");
+        return play;
+    }
+
     //else random
     return getEasyAITurn();
+
+    function findThirdTile(squareArr){
+        if (squareArr.length < 2) return null;
+        for (var i = 0; i < squareArr.length - 1; i++) {
+            for (var j = i + 1; j < squareArr.length; j++) {
+                var id = 15 - squareArr[i] - squareArr[j];
+                if (id > 0 && id < 10
+                    && document.getElementById(id).className.contains("empty")) {
+                        //console.log("I should go here: " + id);
+                        return document.getElementById(id);
+                }
+            }
+        }
+    }
 }
 
-function toArray(myCollection) {
+function getHardAITurn(gameTree) {
+    //end of turn
+    doAITurn = function(squareClicked) {
+        squareClicked(getHardAITurn(gameTree));
+    }
+};
+
+function toIdArray(myCollection) {
     var a = [];
     [].forEach.call(myCollection, (value) => {
         a.push(parseInt(value.id));
@@ -177,22 +182,24 @@ function checkWin(player, numbers, target, partial) {
     }, 0);
 
     if (s === target) {
-        if (partial.length != 3) return;
+        if (partial.length != 3) return false;
         hasWon(player, partial);
     }
 
     if (s >= target) {
-        return;  // if we reach the number why bother to continue
+        //return;  // if we reach the number why bother to continue
+        return false;
     }
 
     for (var i = 0; i < numbers.length; i++) {
         n = numbers[i];
         remaining = numbers.slice(i + 1);
-        checkWin(player, remaining, target, partial.concat([n]));
+        if(checkWin(player, remaining, target, partial.concat([n]))) return true;
     }
+    return false;
 }
 
-function checkGameOver() {
+function checkGameOver(doSetup) {
     var isWin = false;
     var noEmpty = true;
 
@@ -213,15 +220,17 @@ function checkGameOver() {
     function gameOver() {
         [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
             tile.onclick = () => {};
-            if (tile.className.contains("enabled")) tile.className = tile.className.replace(" enabled", "");
-            if (!tile.className.contains("win")) tile.className += " disabled";
+            if (tile.className.contains("enabled"))
+                tile.className = tile.className.replace(" enabled", "");
+            if (!tile.className.contains("win"))
+                tile.className += " disabled";
         });
 
         setMiddle(document.getElementById("5"));
 
         function setMiddle(middle) {
             middle.onclick = () => {
-                setupGame();
+                doSetup();
             }
 
             var p = document.createElement("DIV");
@@ -263,19 +272,46 @@ function toggleSettings() {
     }
 }
 
-var getAI =
-    () => {
-        return "ai-off";
-    };
+var getAI = () => {
+        return "off";
+};
 
-function settingClicked(id) {
-    getAI = () => {
-        return id;
-    };
-    console.log(getAI());
+function getNotAI() {
+    return getAI() == "x" ? "o" : "x";
+}
 
-    toggleSettings();
-    setupGame();
+function getSettingClicked(doSetup, id) {
+    return () => {
+        getAI = () => {
+            return id.substring(3, id.length);
+        };
+        console.log("AI is " + getAI());
+
+        toggleSettings();
+        doSetup();
+    }
+}
+
+function setupGameTree() {
+    var nodes;
+
+    // var createNode = ((parent, parents) => {
+    //     var parentList = parents.push(parent);
+    //     var flag = false;
+    //     var myMoves;
+    //     [].forEach.call(parentList.map((element) => {
+    //         if (flag) {
+    //             myMoves.push(element);
+    //         }
+    //         flag = !flag;
+    //     });
+    //
+    // })();
+
+
+    return () => {
+
+    }
 }
 
 //TODO: get rid of all this old code down here
