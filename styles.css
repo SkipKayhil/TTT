@@ -24,7 +24,6 @@ html, body {
     /*margin: 2vmin;*/
 }
 .tile {
-    cursor: pointer;
     margin: 2%;
     width: 29%;
     height: 29%;
@@ -48,6 +47,9 @@ html, body {
 .tile.o {
     background:  #e91e63;
     color: white;
+}
+.tile.enabled {
+  cursor: pointer;
 }
 .tile.enabled::after {
     content: "";

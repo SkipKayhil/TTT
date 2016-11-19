@@ -1,10 +1,67 @@
+// TODO: Alright time for some thoughts:
+// 1. Clearly I should be using JSON for this
+// 2. Start with global variable that then gets passed around?
+// 3. JSON should have these elements:
+// 3a.  The move (tileID: #)
+// 3b.  The depth (depth: #)
+// 3c.  The score (score: #)
+// 3d.  The children (children: {})
+// 4. CheckWin should only check if new tile creates win.
+// 5. Refactor variables so code is more readable
+// 6. make the tileIDs rotate so gameTree is only 4/9ths the size
+
+const defaultGameTree = () => {
+    const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    var tree = {};
+    tree.children = {};
+    for (var i = 1; i < 10; i++) {
+        tree.children[i] = createTurn(i, 1, allMoves.filter(x => x != i), [i]);
+    }
+    return tree;
+
+    function createTurn(tileID, depth, tilesLeft, taken) {
+        var turn = {};
+        turn.tileID = tileID;
+        turn.score = true;
+
+        // turn.depth = depth;
+        // turn.taken = taken;
+
+        var player = depth % 2 == 1 ? "x" : "o";
+        turn.player = player;
+        var mod = player == "x" ? 1 : -1;
+
+        //check for player win
+        if (checkWin(player,
+            taken.filter(x => taken.indexOf(x) % 2 != depth % 2)) != false) {
+            turn.score = (10 - depth) * mod;
+        } else if (depth == 9) {
+            // if the depth is 9 and not a win, then its a tie
+            turn.score = 0;
+        } else {
+            turn.children = {};
+            tilesLeft.forEach((tile) => {
+                turn.children[tile] = createTurn(tile,
+                    depth + 1, tilesLeft.filter(x => x != tile),
+                    taken.concat(tile));
+                if (turn.score == true ||
+                    (player == "x" && turn.children[tile].score < turn.score) ||
+                    (player == "o" && turn.children[tile].score > turn.score)) {
+                    turn.score = turn.children[tile].score;
+                }
+            });
+        }
+        return turn;
+    }
+}
+
 window.onload = () => {
     setupViewport();
-    var doSetup = setupGame(setupGameTree());
+    var setupGame = curryGameSetup(defaultGameTree);
     [].forEach.call(document.getElementsByClassName("menu-item"), (item) => {
-        item.onclick = getSettingClicked(doSetup, item.id);
+        item.onclick = getSettingClicked(setupGame, item.id);
     });
-    doSetup();
+    setupGame();
 }
 
 window.onresize = (event) => {
@@ -14,7 +71,8 @@ window.onresize = (event) => {
 function setupViewport() {
     var width = document.documentElement.clientWidth;
     var height = document.documentElement.clientHeight;
-    var navHeight, gameWidth, gameHeight, footHeight, buttonMargin, buttonPadding;
+    var navHeight, gameWidth, gameHeight, footHeight, buttonMargin,
+        buttonPadding;
 
     if (width > height) {       //landscape
         if (width < 960) {          //phone
@@ -52,14 +110,14 @@ function setupViewport() {
     document.getElementById("game").style.height = gameHeight;
 }
 
-var setupGame = function(gameTree) {
+function curryGameSetup(defaultGameTree) {
     return function setup() {
-        var getTurn = setupTurn();
-        var squareClicked = setupSquareClick(getTurn, setup);
+        var getTurn = setupTurnBoolean();
+        var squareClicked = currySquareClicked(getTurn, setup);
         setPlayerTurn = setupPlayerTurn(squareClicked);
 
         [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-            value.onclick = setPlayerTurn(gameTree, value);
+            value.onclick = setPlayerTurn(defaultGameTree, value);
 
             value.className = "tile empty enabled";
 
@@ -74,11 +132,11 @@ var setupGame = function(gameTree) {
 function setTileClick(gameTree) {
     [].forEach.call(document.getElementsByClassName("tile"), (value) => {
         if(!value.className.contains("empty"))
-            value.onclick = setPlayerTurn(gameTree)(value);
+            value.onclick = setPlayerTurn(gameTree, value);
     });
 }
 
-function setupTurn() {
+function setupTurnBoolean() {
     var turns = true;
 
     return () => {
@@ -86,7 +144,7 @@ function setupTurn() {
     }
 }
 
-function setupSquareClick(getTurn, doSetup) {
+function currySquareClicked(getTurn, doSetup) {
     return function(square){
         console.log(oldGetTurn() + " clicked on " + square.id);
 
@@ -100,22 +158,16 @@ function setupSquareClick(getTurn, doSetup) {
         // 3.   Add safari prefixes because apparently webkit has to be special
         // 3a.  Add mobile touch support
 
-        if (square.className.includes("empty")) {
-            return doTurn(getTurn() ? "o" : "x");
-        }
+        const player = getTurn() ? "o" : "x";
+        const check = checkWin(player,
+            checkWin(player, getIdArray(player), [square.id]));
 
-        function doTurn(player) {
-            square.className = setTileType(square, player).replace(" enabled", "");
-            getWinningTiles(player,
-                checkWin(player, toIdArray(document.getElementsByClassName(player))));
-            return !checkGameOver(doSetup);
+        square.className = setTileType(square, player).replace(" enabled", "");
+        square.onclick = () => {};
+        if (check != false){
+            hasWon(player, check);
         }
-
-        function getWinningTiles(player, check) {
-            if (check != false){
-                hasWon(player, check);
-            }
-        }
+        return !checkGameOver(doSetup);
     }
 }
 
@@ -126,7 +178,7 @@ function updateGameTree(gameTree, lastTurn) {
     }
 }
 
-var setupPlayerTurn = function(squareClicked) {
+function setupPlayerTurn(squareClicked) {
     return function(gameTree, value) {
         return function() {
             if (squareClicked(value) && getAI() != "off") {
@@ -152,19 +204,14 @@ function getEasyAITurn() {
 
 function getMedAITurn() {
     var play = null;
+
     //try to Win
-    play = findThirdTile(toIdArray(document.getElementsByClassName(getAI())));
-    if (play != null) {
-        //console.log(play.id + " to win");
-        return play;
-    }
+    play = findThirdTile(getIdArray(getAI()));
+    if (play != null) return play;
 
     //try to not lose
-    play = findThirdTile(toIdArray(document.getElementsByClassName(getNotAI())));
-    if (play != null) {
-        //console.log(play.id + " to block");
-        return play;
-    }
+    play = findThirdTile(getIdArray(getNotAI()));
+    if (play != null) return play;
 
     //else random
     return getEasyAITurn();
@@ -175,8 +222,8 @@ function getMedAITurn() {
             for (var j = i + 1; j < squareArr.length; j++) {
                 var id = 15 - squareArr[i] - squareArr[j];
                 if (id > 0 && id < 10
-                    && document.getElementById(id).className.contains("empty")) {
-                        //console.log("I should go here: " + id);
+                    && document.getElementById(id).className.contains("empty"))
+                {
                         return document.getElementById(id);
                 }
             }
@@ -205,9 +252,9 @@ function getHardAITurn(gameTree) {
     return document.getElementById(bestTurn);
 };
 
-function toIdArray(myCollection) {
+function getIdArray(player) {
     var a = [];
-    [].forEach.call(myCollection, (value) => {
+    [].forEach.call(document.getElementsByClassName(player), (value) => {
         a.push(parseInt(value.id));
     });
     return a;
@@ -327,7 +374,7 @@ function toggleSettings() {
 }
 
 var getAI = () => {
-        return "off";
+    return "off";
 };
 
 function getNotAI() {
@@ -346,23 +393,24 @@ function getSettingClicked(doSetup, id) {
     }
 }
 
-function setupGameTree() {
-    var children = [];
-    console.log("setting up game tree");
-    for (var i = 1; i < 10; i++) {
-        var remaining = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-        console.log(remaining.splice(remaining.indexOf(i), 1));
-        //console.log(remaining);
-        var child = createNode(i, true, 0, [], [], remaining.splice(remaining.indexOf(i), 1));
-        children.push(child);
-    }
-
-    return {
-        getChildren: function() {
-            return children;
-        }
-    }
-}
+// function setupGameTree() {
+//     var children = {};
+//     console.log("setting up game tree");
+//     for (var i = 1; i < 10; i++) {
+//         var remaining = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+//         console.log(remaining.splice(remaining.indexOf(i), 1));
+//         //console.log(remaining);
+//         var child = createNode(i, true, 0, [], [],
+//             remaining.splice(remaining.indexOf(i), 1));
+//         children.push(child);
+//     }
+//
+//     return {
+//         getChildren: function() {
+//             return children;
+//         }
+//     }
+// }
 
 function createNode(id, player, parent, myOldMoves, theirMoves, remainingMoves) {
     //console.log("creating node for " + id + " "  + parents)
@@ -387,7 +435,8 @@ function createNode(id, player, parent, myOldMoves, theirMoves, remainingMoves) 
         sum = 0;
     } else {
         for (var i = 0; i < remainingMoves.length; i++) {
-            var child = createNode(remainingMoves[i], !player, id, theirMoves, myMoves, remainingMoves);
+            var child = createNode(remainingMoves[i], !player, id, theirMoves,
+                myMoves, remainingMoves);
             children.push(child);
             sum += child.getSum();
         }
