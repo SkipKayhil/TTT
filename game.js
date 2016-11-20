@@ -1,15 +1,8 @@
 // TODO: Alright time for some thoughts:
-// x. Clearly I should be using JSON for this
-// x. Start with global variable that then gets passed around?
-// 2a.  Call the minmax function when its the AI's turn
-// 3. JSON should have these elements:
-// 3a.  The move (tileID: #)
-// 3c.  The score (score: #)
-// 3d.  The children (children: {})
-// 4. CheckWin should only check if new tile creates win.
-// 5. Refactor variables so code is more readable
+// 5. Refactor variables so code is more readable/clean up code
 // 5a.  Make PlayerTurn/AITurn return values instead of DOM elements
-// 6. make the tileIDs rotate so gameTree is only 4/9ths the size
+// 6. CheckWin should only check if new tile creates win.
+// 7. make the tileIDs rotate so gameTree is only 4/9ths the size
 "use strict";
 
 function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
@@ -131,13 +124,6 @@ function setupGame() {
     if (getAI() == "x") doAITurn(squareClicked);
 }
 
-// function setTileClick(gameTree) {
-//     [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-//         if(!value.className.contains("empty"))
-//             value.onclick = setPlayerTurn(gameTree, value);
-//     });
-// }
-
 function setupTurnBoolean() {
     var turns = true;
 
@@ -197,7 +183,7 @@ var doAITurn = function(squareClicked) {
 
 function getEasyAITurn() {
     var rand = Math.floor(Math.random() * 9) + 1;
-    if (document.getElementById(rand).className.contains("empty")) {
+    if (document.getElementById(rand).className.includes("empty")) {
         return document.getElementById(rand);
     } else {
         return getEasyAITurn();
@@ -224,7 +210,7 @@ function getMedAITurn() {
             for (var j = i + 1; j < squareArr.length; j++) {
                 var id = 15 - squareArr[i] - squareArr[j];
                 if (id > 0 && id < 10
-                    && document.getElementById(id).className.contains("empty"))
+                    && document.getElementById(id).className.includes("empty"))
                 {
                         return document.getElementById(id);
                 }
@@ -239,22 +225,16 @@ function getHardAITurn() {
         // if every tile is empty, pick a random corner
         return document.getElementById(pickRandomCorner());
     } else if (document.getElementsByClassName("empty").length == 8) {
-        if (!document.getElementById(5).className.contains("empty")) {
+        if (!document.getElementById(5).className.includes("empty")) {
             return document.getElementById(pickRandomCorner());
         } else {
             return document.getElementById(5);
         }
     } else {
         const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-        // const emptyTiles = allMoves.filter(
-        //     x => document.getElementById(x).className.contains("empty")
-        // );
-        // const usedTiles = allMoves.filter(
-        //     x => emptyTiles.indexOf(x) == -1
-        // );
         const currentGameTree = getStateChildren(
             allMoves.filter(
-                x => document.getElementById(x).className.contains("empty")
+                x => document.getElementById(x).className.includes("empty")
             ),
             getIdArray("x"),
             getIdArray("o"),
@@ -323,10 +303,10 @@ function checkGameOver() {
     var noEmpty = true;
 
     [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
-        if (tile.className.contains("win")) {
+        if (tile.className.includes("win")) {
             isWin = true;
         }
-        if (tile.className.contains("empty")) {
+        if (tile.className.includes("empty")) {
             noEmpty = false;
         }
     });
@@ -339,9 +319,9 @@ function checkGameOver() {
     function gameOver() {
         [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
             tile.onclick = () => {};
-            if (tile.className.contains("enabled"))
+            if (tile.className.includes("enabled"))
                 tile.className = tile.className.replace(" enabled", "");
-            if (!tile.className.contains("win"))
+            if (!tile.className.includes("win"))
                 tile.className += " disabled";
         });
 
@@ -383,13 +363,13 @@ function hasWon(player, partial) {
 }
 
 function setTileType(tile, newType) {
-    if (tile.className.contains("x"))
+    if (tile.className.includes("x"))
         return tile.className.replace("x", newType);
-    else if (tile.className.contains("o"))
+    else if (tile.className.includes("o"))
         return tile.className.replace("o", newType);
-    else if (tile.className.contains("new-game"))
+    else if (tile.className.includes("new-game"))
         return tile.className.replace("new-game", newType);
-    else if (tile.className.contains("empty"))
+    else if (tile.className.includes("empty"))
         return tile.className.replace("empty", newType);
     else
         return tile.className;
