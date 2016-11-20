@@ -4,78 +4,64 @@
 // 2a.  Call the minmax function when its the AI's turn
 // 3. JSON should have these elements:
 // 3a.  The move (tileID: #)
-// 3b.  The depth (depth: #)
 // 3c.  The score (score: #)
 // 3d.  The children (children: {})
 // 4. CheckWin should only check if new tile creates win.
 // 5. Refactor variables so code is more readable
 // 5a.  Make PlayerTurn/AITurn return values instead of DOM elements
 // 6. make the tileIDs rotate so gameTree is only 4/9ths the size
+"use strict";
 
-// const defaultGameTree = () => {
-//     // things to pass in:
-//     // 1.   allMoves (available moves)
-//     // 2.
-//     const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-//     var tree = {};
-//     tree.children = {};
-//     //for (var i = 1; i < 10; i++) {
-//     allMoves.forEach(i => {
-//         tree.children[i] = getStateChildren(allMoves.filter(x => x != i), [i], i)
-//     });
-//     return tree;
-const defaultGameTree;
-    function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
-        var turn = {};
-        turn.tileID = tileID;
-        turn.score = true;
+function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
+    var turn = {};
+    turn.tileID = tileID;
+    turn.score = true;
 
-        const depth = xTiles.length + oTiles.length;
-        const player = depth % 2 == 1 ? "x" : "o";
-        turn.depth = depth;
-        turn.player = player;
-        const mod = player == "x" ? 1 : -1;
+    const depth = xTiles.length + oTiles.length;
+    const player = depth % 2 == 1 ? "x" : "o";
+    turn.depth = depth;
+    turn.player = player;
+    const mod = player == "x" ? 1 : -1;
 
-        //check for player win
-        if (checkWin(player, player == "x" ? xTiles : oTiles) != false) {
-            //console.log("win condition: " + xTiles)
-            turn.score = (10 - depth) * mod;
-        } else if (depth == 9) {
-            // if the depth is 9 and not a win, then its a tie
-            turn.score = 0;
-        } else {
-            turn.children = {};
-            tilesLeft.forEach((tile) => {
-                if (player == "x") {
-                    turn.children[tile] = getStateChildren(
-                        tilesLeft.filter(x => x != tile),
-                        xTiles,
-                        oTiles.concat(tile),
-                        tile
-                    );
-                }
-                else {
-                    turn.children[tile] = getStateChildren(
-                        tilesLeft.filter(x => x != tile),
-                        xTiles.concat(tile),
-                        oTiles,
-                        tile
-                    );
-                }
-                if (turn.score == true ||
-                    (player == "x" && turn.children[tile].score < turn.score) ||
-                    (player == "o" && turn.children[tile].score > turn.score)) {
-                    turn.score = turn.children[tile].score;
-                }
-            });
-        }
-        return turn;
+    //check for player win
+    if (checkWin(player, player == "x" ? xTiles : oTiles) != false) {
+        //console.log("win condition: " + xTiles)
+        turn.score = (10 - depth) * mod;
+    } else if (depth == 9) {
+        // if the depth is 9 and not a win, then its a tie
+        turn.score = 0;
+    } else {
+        turn.children = {};
+        tilesLeft.forEach((tile) => {
+            if (player == "x") {
+                turn.children[tile] = getStateChildren(
+                    tilesLeft.filter(x => x != tile),
+                    xTiles,
+                    oTiles.concat(tile),
+                    tile
+                );
+            }
+            else {
+                turn.children[tile] = getStateChildren(
+                    tilesLeft.filter(x => x != tile),
+                    xTiles.concat(tile),
+                    oTiles,
+                    tile
+                );
+            }
+            if (turn.score == true ||
+                (player == "x" && turn.children[tile].score < turn.score) ||
+                (player == "o" && turn.children[tile].score > turn.score)) {
+                turn.score = turn.children[tile].score;
+            }
+        });
     }
-// }
+    return turn;
+}
 
 window.onload = () => {
     setupViewport();
-    var setupGame = curryGameSetup(defaultGameTree);
+    // var setupGame = curryGameSetup();
     [].forEach.call(document.getElementsByClassName("menu-item"), (item) => {
         item.onclick = getSettingClicked(setupGame, item.id);
     });
@@ -128,31 +114,29 @@ function setupViewport() {
     document.getElementById("game").style.height = gameHeight;
 }
 
-function curryGameSetup(defaultGameTree) {
-    return function setup() {
-        var getTurn = setupTurnBoolean();
-        var squareClicked = currySquareClicked(getTurn, setup);
-        setPlayerTurn = setupPlayerTurn(squareClicked);
+function setupGame() {
+    var getTurn = setupTurnBoolean();
+    var squareClicked = currySquareClicked(getTurn);
+    setPlayerTurn = setupPlayerTurn(squareClicked);
 
-        [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-            value.onclick = setPlayerTurn(defaultGameTree, value);
-
-            value.className = "tile empty enabled";
-
-            while(value.firstChild)
-                value.removeChild(value.firstChild);
-        });
-
-        if (getAI() == "x") doAITurn(squareClicked);
-    }
-}
-
-function setTileClick(gameTree) {
     [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-        if(!value.className.contains("empty"))
-            value.onclick = setPlayerTurn(gameTree, value);
+        value.onclick = setPlayerTurn(value);
+
+        value.className = "tile empty enabled";
+
+        while(value.firstChild)
+            value.removeChild(value.firstChild);
     });
+
+    if (getAI() == "x") doAITurn(squareClicked);
 }
+
+// function setTileClick(gameTree) {
+//     [].forEach.call(document.getElementsByClassName("tile"), (value) => {
+//         if(!value.className.contains("empty"))
+//             value.onclick = setPlayerTurn(gameTree, value);
+//     });
+// }
 
 function setupTurnBoolean() {
     var turns = true;
@@ -162,7 +146,7 @@ function setupTurnBoolean() {
     }
 }
 
-function currySquareClicked(getTurn, doSetup) {
+function currySquareClicked(getTurn) {
     return function(square){
         console.log(oldGetTurn() + " clicked on " + square.id);
 
@@ -185,7 +169,7 @@ function currySquareClicked(getTurn, doSetup) {
         if (check != false){
             hasWon(player, check);
         }
-        return !checkGameOver(doSetup);
+        return !checkGameOver();
     }
 }
 
@@ -197,7 +181,7 @@ function currySquareClicked(getTurn, doSetup) {
 // }
 
 function setupPlayerTurn(squareClicked) {
-    return function(gameTree, value) {
+    return function(value) {
         return function() {
             if (squareClicked(value) && getAI() != "off") {
                 doAITurn(squareClicked);
@@ -253,9 +237,13 @@ function getHardAITurn() {
     // Skynet came online 2016/11/19 at 19:43:07
     if (document.getElementsByClassName("empty").length == 9) {
         // if every tile is empty, pick a random corner
-        const cornerTiles = [2, 4, 6, 8];
-        const rand = Math.floor(Math.random() * 4);
-        return document.getElementById(cornerTiles[rand]);
+        return document.getElementById(pickRandomCorner());
+    } else if (document.getElementsByClassName("empty").length == 8) {
+        if (!document.getElementById(5).className.contains("empty")) {
+            return document.getElementById(pickRandomCorner());
+        } else {
+            return document.getElementById(5);
+        }
     } else {
         const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         // const emptyTiles = allMoves.filter(
@@ -272,7 +260,7 @@ function getHardAITurn() {
             getIdArray("o"),
             0
         );
-        //console.log(currentGameTree);
+        console.log(currentGameTree);
         var finalTurn;
         var finalScore = true;
         for (var key in currentGameTree.children) {
@@ -286,6 +274,11 @@ function getHardAITurn() {
             }
         }
         return document.getElementById(finalTurn);
+    }
+
+    function pickRandomCorner() {
+        const cornerTiles = [2, 4, 6, 8];
+        return cornerTiles[Math.floor(Math.random() * 4)];
     }
 };
 
@@ -325,7 +318,7 @@ function checkWin(player, numbers, partial) {
     return false;
 }
 
-function checkGameOver(doSetup) {
+function checkGameOver() {
     var isWin = false;
     var noEmpty = true;
 
@@ -356,7 +349,7 @@ function checkGameOver(doSetup) {
 
         function setMiddle(middle) {
             middle.onclick = () => {
-                doSetup();
+                setupGame();
             }
 
             var p = document.createElement("DIV");
