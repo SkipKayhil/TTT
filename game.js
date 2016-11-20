@@ -1,6 +1,7 @@
 // TODO: Alright time for some thoughts:
-// 1. Clearly I should be using JSON for this
-// 2. Start with global variable that then gets passed around?
+// x. Clearly I should be using JSON for this
+// x. Start with global variable that then gets passed around?
+// 2a.  Call the minmax function when its the AI's turn
 // 3. JSON should have these elements:
 // 3a.  The move (tileID: #)
 // 3b.  The depth (depth: #)
@@ -8,32 +9,36 @@
 // 3d.  The children (children: {})
 // 4. CheckWin should only check if new tile creates win.
 // 5. Refactor variables so code is more readable
+// 5a.  Make PlayerTurn/AITurn return values instead of DOM elements
 // 6. make the tileIDs rotate so gameTree is only 4/9ths the size
 
-const defaultGameTree = () => {
-    const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-    var tree = {};
-    tree.children = {};
-    for (var i = 1; i < 10; i++) {
-        tree.children[i] = createTurn(i, 1, allMoves.filter(x => x != i), [i]);
-    }
-    return tree;
-
-    function createTurn(tileID, depth, tilesLeft, taken) {
+// const defaultGameTree = () => {
+//     // things to pass in:
+//     // 1.   allMoves (available moves)
+//     // 2.
+//     const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+//     var tree = {};
+//     tree.children = {};
+//     //for (var i = 1; i < 10; i++) {
+//     allMoves.forEach(i => {
+//         tree.children[i] = getStateChildren(allMoves.filter(x => x != i), [i], i)
+//     });
+//     return tree;
+const defaultGameTree;
+    function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
         var turn = {};
         turn.tileID = tileID;
         turn.score = true;
 
-        // turn.depth = depth;
-        // turn.taken = taken;
-
-        var player = depth % 2 == 1 ? "x" : "o";
+        const depth = xTiles.length + oTiles.length;
+        const player = depth % 2 == 1 ? "x" : "o";
+        turn.depth = depth;
         turn.player = player;
-        var mod = player == "x" ? 1 : -1;
+        const mod = player == "x" ? 1 : -1;
 
         //check for player win
-        if (checkWin(player,
-            taken.filter(x => taken.indexOf(x) % 2 != depth % 2)) != false) {
+        if (checkWin(player, player == "x" ? xTiles : oTiles) != false) {
+            //console.log("win condition: " + xTiles)
             turn.score = (10 - depth) * mod;
         } else if (depth == 9) {
             // if the depth is 9 and not a win, then its a tie
@@ -41,9 +46,22 @@ const defaultGameTree = () => {
         } else {
             turn.children = {};
             tilesLeft.forEach((tile) => {
-                turn.children[tile] = createTurn(tile,
-                    depth + 1, tilesLeft.filter(x => x != tile),
-                    taken.concat(tile));
+                if (player == "x") {
+                    turn.children[tile] = getStateChildren(
+                        tilesLeft.filter(x => x != tile),
+                        xTiles,
+                        oTiles.concat(tile),
+                        tile
+                    );
+                }
+                else {
+                    turn.children[tile] = getStateChildren(
+                        tilesLeft.filter(x => x != tile),
+                        xTiles.concat(tile),
+                        oTiles,
+                        tile
+                    );
+                }
                 if (turn.score == true ||
                     (player == "x" && turn.children[tile].score < turn.score) ||
                     (player == "o" && turn.children[tile].score > turn.score)) {
@@ -53,7 +71,7 @@ const defaultGameTree = () => {
         }
         return turn;
     }
-}
+// }
 
 window.onload = () => {
     setupViewport();
@@ -125,7 +143,7 @@ function curryGameSetup(defaultGameTree) {
                 value.removeChild(value.firstChild);
         });
 
-        if (getAI() == "x") doAITurn(squareClicked, gameTree);
+        if (getAI() == "x") doAITurn(squareClicked);
     }
 }
 
@@ -171,26 +189,26 @@ function currySquareClicked(getTurn, doSetup) {
     }
 }
 
-function updateGameTree(gameTree, lastTurn) {
-    for (var i = 0; i < gameTree.getChildren().length; i++) {
-        if (gameTree.getChildren()[i].getID == lastTurn)
-            return gameTree.getChildren()[i];
-    }
-}
+// function updateGameTree(gameTree, lastTurn) {
+//     for (var i = 0; i < gameTree.getChildren().length; i++) {
+//         if (gameTree.getChildren()[i].getID == lastTurn)
+//             return gameTree.getChildren()[i];
+//     }
+// }
 
 function setupPlayerTurn(squareClicked) {
     return function(gameTree, value) {
         return function() {
             if (squareClicked(value) && getAI() != "off") {
-                doAITurn(squareClicked, updateGameTree(value.id));
+                doAITurn(squareClicked);
             }
         }
     }
 }
 var setPlayerTurn;
 
-var doAITurn = function(squareClicked, gameTree) {
-    squareClicked(getHardAITurn(gameTree));
+var doAITurn = function(squareClicked) {
+    squareClicked(getHardAITurn());
 }
 
 function getEasyAITurn() {
@@ -231,25 +249,44 @@ function getMedAITurn() {
     }
 }
 
-function getHardAITurn(gameTree) {
-    var bestTurn = 2;
-    var newGameTree;
-    for (var i = 0; i < gameTree.getChildren().length; i++) {
-        console.log(gameTree.getChildren());
-        if (gameTree.getChildren()[i].getSum() > bestTurn) {
-            bestTurn = i;
-            newGameTree = gameTree.getChildren()[i];
+function getHardAITurn() {
+    // Skynet came online 2016/11/19 at 19:43:07
+    if (document.getElementsByClassName("empty").length == 9) {
+        // if every tile is empty, pick a random corner
+        const cornerTiles = [2, 4, 6, 8];
+        const rand = Math.floor(Math.random() * 4);
+        return document.getElementById(cornerTiles[rand]);
+    } else {
+        const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        // const emptyTiles = allMoves.filter(
+        //     x => document.getElementById(x).className.contains("empty")
+        // );
+        // const usedTiles = allMoves.filter(
+        //     x => emptyTiles.indexOf(x) == -1
+        // );
+        const currentGameTree = getStateChildren(
+            allMoves.filter(
+                x => document.getElementById(x).className.contains("empty")
+            ),
+            getIdArray("x"),
+            getIdArray("o"),
+            0
+        );
+        //console.log(currentGameTree);
+        var finalTurn;
+        var finalScore = true;
+        for (var key in currentGameTree.children) {
+            const possibleTurn = currentGameTree.children[key];
+            if (finalScore == true ||
+                (getAI() == "x" && possibleTurn.score > finalScore) ||
+                (getAI() == "o" && possibleTurn.score < finalScore)) {
+                    //console.log(possibleTurn + "'s score is " + possibleTurn.score + " and is less than " + finalScore)
+                    finalTurn = key;
+                    finalScore = possibleTurn.score;
+            }
         }
+        return document.getElementById(finalTurn);
     }
-
-    //end of turn
-    doAITurn = function(squareClicked) {
-        squareClicked(getHardAITurn(newGameTree));
-    }
-
-    setTileClick(updateGameTree(gameTree, bestTurn));
-
-    return document.getElementById(bestTurn);
 };
 
 function getIdArray(player) {
@@ -392,70 +429,6 @@ function getSettingClicked(doSetup, id) {
         doSetup();
     }
 }
-
-// function setupGameTree() {
-//     var children = {};
-//     console.log("setting up game tree");
-//     for (var i = 1; i < 10; i++) {
-//         var remaining = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-//         console.log(remaining.splice(remaining.indexOf(i), 1));
-//         //console.log(remaining);
-//         var child = createNode(i, true, 0, [], [],
-//             remaining.splice(remaining.indexOf(i), 1));
-//         children.push(child);
-//     }
-//
-//     return {
-//         getChildren: function() {
-//             return children;
-//         }
-//     }
-// }
-
-function createNode(id, player, parent, myOldMoves, theirMoves, remainingMoves) {
-    //console.log("creating node for " + id + " "  + parents)
-    var myMoves = myOldMoves.concat(parent); //array of id?
-    var sum = 0;
-    var children = []; //array of nodes
-    remainingMoves.splice(remainingMoves.indexOf(id), 1);
-
-    // var myMoves = []
-    // var theirMoves = [];
-    //         [].forEach.call(parentList, (element) => {
-    //     if (element.getPlayer == player) {
-    //         myMoves.push(element);
-    //     } else {
-    //         theirMoves.push(element);
-    //     }
-    // });
-
-    if(checkWin(player ? "x" : "o", myMoves.concat(id)) != false) {
-        sum = player ? 1 : -1;
-    } else if (myMoves.length + theirMoves.length == 8) {
-        sum = 0;
-    } else {
-        for (var i = 0; i < remainingMoves.length; i++) {
-            var child = createNode(remainingMoves[i], !player, id, theirMoves,
-                myMoves, remainingMoves);
-            children.push(child);
-            sum += child.getSum();
-        }
-    }
-    return {
-        getPlayer: function() {
-            return player;
-        },
-        getID: function() {
-            return id;
-        },
-        getSum: function() {
-            return sum;
-        },
-        getChildren: function() {
-            return children;
-        }
-    }
-};
 
 //TODO: get rid of all this old code down here
 //      this is only used for console debugging
