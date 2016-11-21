@@ -1,8 +1,11 @@
 // TODO: Alright time for some thoughts:
-// 5. Refactor variables so code is more readable/clean up code
-// 5a.  Make PlayerTurn/AITurn return values instead of DOM elements
-// 6. CheckWin should only check if new tile creates win.
-// 7. make the tileIDs rotate so gameTree is only 4/9ths the size
+// 1. Refactor variables so code is more readable/clean up code
+// 1a.  Make PlayerTurn/AITurn return values instead of DOM elements
+// 2. CheckWin should only check if new tile creates win.
+// 3b.  Add functionality to set AI difficulty (Easy, Good, Hard
+// 5.   Add safari prefixes because apparently webkit has to be special
+// 6a.  Add mobile touch support
+// X. make the tileIDs rotate so gameTree is only 4/9ths the size
 "use strict";
 
 function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
@@ -54,10 +57,6 @@ function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
 
 window.onload = () => {
     setupViewport();
-    // var setupGame = curryGameSetup();
-    [].forEach.call(document.getElementsByClassName("menu-item"), (item) => {
-        item.onclick = getSettingClicked(setupGame, item.id);
-    });
     setupGame();
 }
 
@@ -98,7 +97,7 @@ function setupViewport() {
     }
     footHeight = navHeight + "px";
     document.getElementById("navbar").style.height = navHeight + "px";
-    [].forEach.call(document.getElementsByClassName("button"), (button) => {
+    getElementArray("button").forEach((button) => {
         button.style.margin = buttonMargin;
         button.style.padding = buttonPadding;
     });
@@ -109,21 +108,21 @@ function setupViewport() {
 
 function setupGame() {
     var getTurn = setupTurnBoolean();
-    var squareClicked = currySquareClicked(getTurn);
-    setPlayerTurn = setupPlayerTurn(squareClicked);
+    //var squareClicked = currySquareClicked(getTurn);
+    //setPlayerTurn = setupPlayerTurn(/*squareClicked*/);
 
-    [].forEach.call(document.getElementsByClassName("tile"), (value) => {
-        value.onclick = setPlayerTurn(value);
-
+    getElementArray("tile").forEach((value) => {
+        value.onclick = () => {tileClicked(getTurn, value)};
         value.className = "tile empty enabled";
 
         while(value.firstChild)
             value.removeChild(value.firstChild);
     });
 
-    if (getAI() == "x") doAITurn(squareClicked);
+    if (getAI() == "x") doAITurn(getTurn);
 }
 
+// This closure gets passed around because it resets at the end of the game
 function setupTurnBoolean() {
     var turns = true;
 
@@ -132,57 +131,36 @@ function setupTurnBoolean() {
     }
 }
 
-function currySquareClicked(getTurn) {
-    return function(square){
-        console.log(oldGetTurn() + " clicked on " + square.id);
-
-        //TODO: basically here's the logic I want to implement:
-        // 2.   make game playable with AI
-        // 2a.      Add functionality to enable AI (X, O, OFF)
-        // 2b.  Add functionality to set AI difficulty (Easy, Good, Hard
-        // 2c.      Add easy AI mode
-        // 2d.      Add good AI mode
-        // 2f.  Add logical hard AI mode?
-        // 3.   Add safari prefixes because apparently webkit has to be special
-        // 3a.  Add mobile touch support
-
-        const player = getTurn() ? "o" : "x";
-        const check = checkWin(player,
-            checkWin(player, getIdArray(player), [square.id]));
-
-        square.className = setTileType(square, player).replace(" enabled", "");
-        square.onclick = () => {};
-        if (check != false){
-            hasWon(player, check);
-        }
-        return !checkGameOver();
-    }
+function getOtherPlayer(currentTurn) {
+    return currentTurn == "x" ? "o" : "x";
 }
 
-// function updateGameTree(gameTree, lastTurn) {
-//     for (var i = 0; i < gameTree.getChildren().length; i++) {
-//         if (gameTree.getChildren()[i].getID == lastTurn)
-//             return gameTree.getChildren()[i];
-//     }
-// }
+function tileClicked(getTurn, square) {
+    console.log(oldGetTurn() + " clicked on " + square.id);
 
-function setupPlayerTurn(squareClicked) {
-    return function(value) {
-        return function() {
-            if (squareClicked(value) && getAI() != "off") {
-                doAITurn(squareClicked);
-            }
-        }
+    const player = getTurn() ? "o" : "x";
+    const check = checkWin(player,
+        checkWin(player, getIdArray(player), [square.id]));
+
+    square.className = setTileType(square, player).replace(" enabled", "");
+    square.onclick = () => {};
+    if (check != false){
+        setTilesAsWon(player, check);
+        gameOver();
+    } else if (getElementArray("empty").length == 0) {
+        gameOver();
+    } else if (getOtherPlayer(player) == getAI()) {
+        doAITurn(getTurn, getOtherPlayer(player));
     }
+    //if AI is active, and the other player is AI
 }
-var setPlayerTurn;
 
-var doAITurn = function(squareClicked) {
-    squareClicked(getHardAITurn());
+function doAITurn(getTurn, player, currentAIMode) {
+    tileClicked(getTurn, getHardAITurn(player));
 }
 
 function getEasyAITurn() {
-    var rand = Math.floor(Math.random() * 9) + 1;
+    const rand = Math.floor(Math.random() * 9) + 1;
     if (document.getElementById(rand).className.includes("empty")) {
         return document.getElementById(rand);
     } else {
@@ -198,7 +176,7 @@ function getMedAITurn() {
     if (play != null) return play;
 
     //try to not lose
-    play = findThirdTile(getIdArray(getNotAI()));
+    play = findThirdTile(getIdArray(getOtherPlayer(getAI())));
     if (play != null) return play;
 
     //else random
@@ -219,7 +197,7 @@ function getMedAITurn() {
     }
 }
 
-function getHardAITurn() {
+function getHardAITurn(player) {
     // Skynet came online 2016/11/19 at 19:43:07
     if (document.getElementsByClassName("empty").length == 9) {
         // if every tile is empty, pick a random corner
@@ -240,14 +218,17 @@ function getHardAITurn() {
             getIdArray("o"),
             0
         );
-        console.log(currentGameTree);
+//TODO: refactor getStateChildren to return the key so it can be used here
+        //console.log(currentGameTree);
         var finalTurn;
         var finalScore = true;
         for (var key in currentGameTree.children) {
             const possibleTurn = currentGameTree.children[key];
             if (finalScore == true ||
-                (getAI() == "x" && possibleTurn.score > finalScore) ||
-                (getAI() == "o" && possibleTurn.score < finalScore)) {
+                (player == "x" && possibleTurn.score > finalScore) ||
+                (player == "o" && possibleTurn.score < finalScore) ||
+                (possibleTurn.score == finalScore &&
+                    Math.floor(Math.random() * 2) == 1)) {
                     //console.log(possibleTurn + "'s score is " + possibleTurn.score + " and is less than " + finalScore)
                     finalTurn = key;
                     finalScore = possibleTurn.score;
@@ -262,62 +243,62 @@ function getHardAITurn() {
     }
 };
 
+function getElementArray(className) {
+    return  [].slice.call(document.getElementsByClassName(className));
+}
+
 function getIdArray(player) {
-    var a = [];
-    [].forEach.call(document.getElementsByClassName(player), (value) => {
-        a.push(parseInt(value.id));
-    });
-    return a;
+    return getElementArray(player).reduce((a, b) => {
+        return a.concat(b.id);
+    }, []);
 }
 
 function checkWin(player, numbers, partial) {
-    var s, n, remaining;
+    //  Goal: return array of winning tile values
+    //  if there are no winning values, return false
+    var sum;
+    var winningTiles = [];
 
     partial = partial || [];
 
-    s = partial.reduce((a, b) => {
+    sum = partial.reduce((a, b) => {
         return parseInt(a) + parseInt(b);
     }, 0);
 
-    if (s === 15) {
-        return partial.length == 3 ? partial : false;
-    }
+    if (sum === 15 && partial.length == 3)
+        return partial;
 
-    if (s >= 15) {
-        //return;  // if we reach the number why bother to continue
+    if (sum >= 15 || partial.length > 2)
         return false;
-    }
 
     for (var i = 0; i < numbers.length; i++) {
-        n = numbers[i];
-        remaining = numbers.slice(i + 1);
-        var check = checkWin(player, remaining, partial.concat([n]));
-        if(check != false)
-            return check;
+        const n = numbers[i];
+        const remaining = numbers.slice(i + 1);
+        const check = checkWin(player, remaining, partial.concat([n]));
+        if(check != false) {
+            check.forEach((winningTile) => {
+                if (winningTiles.indexOf(winningTile) == -1) {
+                    winningTiles = winningTiles.concat(winningTile);
+                }
+            });
+        }
     }
-    return false;
+    if (winningTiles.length == 0)
+        return false;
+    else return winningTiles;
 }
 
-function checkGameOver() {
-    var isWin = false;
-    var noEmpty = true;
-
-    [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
-        if (tile.className.includes("win")) {
-            isWin = true;
-        }
-        if (tile.className.includes("empty")) {
-            noEmpty = false;
-        }
-    });
-
-    if ((isWin || noEmpty) && !document.getElementById("5").firstChild) {
-        gameOver();
-        return true;
-    } else return false;
+// function checkGameOver() {
+//     const isWin = getElementArray("win").length > 0;
+//     const noEmpty = getElementArray("empty").length == 0;
+//
+//     if ((isWin || noEmpty) && !document.getElementById("5").firstChild) {
+//         gameOver();
+//         return true;
+//     } else return false;
 
     function gameOver() {
-        [].forEach.call(document.getElementsByClassName("tile"), (tile) => {
+        getElementArray("tile").forEach((tile) => {
             tile.onclick = () => {};
             if (tile.className.includes("enabled"))
                 tile.className = tile.className.replace(" enabled", "");
@@ -340,13 +321,13 @@ function checkGameOver() {
             middle.className += " enabled";
         }
     }
-}
+// }
 
-function hasWon(player, partial) {
+function setTilesAsWon(player, winningTiles) {
     console.log(player + " has won!");
 
-    partial.forEach((value) => {
-        document.getElementById(value).className += " win";
+    winningTiles.forEach((tile) => {
+        document.getElementById(tile).className += " win";
     });
 
     //TODO figure out a better way to implement double wins
@@ -363,16 +344,7 @@ function hasWon(player, partial) {
 }
 
 function setTileType(tile, newType) {
-    if (tile.className.includes("x"))
-        return tile.className.replace("x", newType);
-    else if (tile.className.includes("o"))
-        return tile.className.replace("o", newType);
-    else if (tile.className.includes("new-game"))
-        return tile.className.replace("new-game", newType);
-    else if (tile.className.includes("empty"))
-        return tile.className.replace("empty", newType);
-    else
-        return tile.className;
+    return tile.className.replace(/x|o|new-game|empty/, newType);
 }
 
 function toggleSettings() {
@@ -387,20 +359,14 @@ var getAI = () => {
     return "off";
 };
 
-function getNotAI() {
-    return getAI() == "x" ? "o" : "x";
-}
+function settingClicked(aiSetting) {
+    getAI = () => {
+        return aiSetting;
+    };
+    console.log("AI is " + getAI());
 
-function getSettingClicked(doSetup, id) {
-    return () => {
-        getAI = () => {
-            return id.substring(3, id.length);
-        };
-        console.log("AI is " + getAI());
-
-        toggleSettings();
-        doSetup();
-    }
+    toggleSettings();
+    setupGame();
 }
 
 //TODO: get rid of all this old code down here
