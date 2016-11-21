@@ -1,8 +1,8 @@
 // TODO: Alright time for some thoughts:
-// 1. Refactor variables so code is more readable/clean up code
-// 1a.  Make PlayerTurn/AITurn return values instead of DOM elements
+// 1. Use @media queries for css instead of setupViewport
 // 2. CheckWin should only check if new tile creates win.
-// 3b.  Add functionality to set AI difficulty (Easy, Good, Hard
+// 3. Add functionality to set AI difficulty (Easy, Good, Hard
+// 4. Refactor variables so code is more readable/clean up code
 // 5.   Add safari prefixes because apparently webkit has to be special
 // 6a.  Add mobile touch support
 // X. make the tileIDs rotate so gameTree is only 4/9ths the size
@@ -15,12 +15,9 @@ function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
 
     const depth = xTiles.length + oTiles.length;
     const player = depth % 2 === 1 ? "x" : "o";
-    // These are both unnecessary but make the output more verbose
-    //turn.depth = depth;
-    //turn.player = player;
 
     //check for player win
-    if (checkWin(player, player === "x" ? xTiles : oTiles) != false) {
+    if (checkWin(player, player === "x" ? xTiles : oTiles)) {
         //console.log("win condition: " + xTiles)
         turn.score = (10 - depth) * (player === "x" ? 1 : -1);
     } else if (depth === 9) {
@@ -65,8 +62,8 @@ window.onresize = (event) => {
 }
 
 function setupViewport() {
-    var width = document.documentElement.clientWidth;
-    var height = document.documentElement.clientHeight;
+    const width = document.documentElement.clientWidth;
+    const height = document.documentElement.clientHeight;
     var navHeight, gameWidth, gameHeight, footHeight, buttonMargin,
         buttonPadding;
 
@@ -143,15 +140,14 @@ function tileClicked(getTurn, tileID) {
 
     tile.className = setTileType(tile, player).replace(" enabled", "");
     tile.onclick = () => {};
-    if (check != false){
+    if (check){
         setTilesAsWon(player, check);
         gameOver();
     } else if (getElementArray("empty").length === 0) {
         gameOver();
     } else if (getOtherPlayer(player) === getAI()) {
-        doAITurn(getTurn, getOtherPlayer(player));
+        doAITurn(getTurn, getAI());
     }
-    //if AI is active, and the other player is AI
 }
 
 function doAITurn(getTurn, player, currentAIMode) {
@@ -207,11 +203,7 @@ function getHardAITurn(player) {
         const currentGameTree = getStateChildren(
             allMoves.filter(
                 x => document.getElementById(x).className.includes("empty")
-            ),
-            getIdArray("x"),
-            getIdArray("o"),
-            0
-        );
+            ), getIdArray("x"), getIdArray("o"), 0);
 //TODO: refactor getStateChildren to return the key so it can be used here
         //console.log(currentGameTree);
         var finalTurn;
@@ -228,7 +220,7 @@ function getHardAITurn(player) {
                     finalScore = possibleTurn.score;
             }
         }
-        return document.getElementById(finalTurn);
+        return finalTurn;
     }
 
     function pickRandomCorner() {
@@ -269,7 +261,7 @@ function checkWin(player, numbers, partial) {
         const n = numbers[i];
         const remaining = numbers.slice(i + 1);
         const check = checkWin(player, remaining, partial.concat([n]));
-        if(check != false) {
+        if(check) {
             check.forEach((winningTile) => {
                 if (winningTiles.indexOf(winningTile) === -1) {
                     winningTiles = winningTiles.concat(winningTile);
@@ -282,6 +274,7 @@ function checkWin(player, numbers, partial) {
         : winningTiles;
 }
 
+//Possibly deprecate this, it's only used once
 function gameOver() {
     getElementArray("tile").forEach((tile) => {
         if (tile.id === "5") {
@@ -302,6 +295,7 @@ function gameOver() {
     });
 }
 
+// Deprecate this, its only used once
 function setTilesAsWon(player, winningTiles) {
     console.log(player + " has won!");
 
@@ -310,6 +304,7 @@ function setTilesAsWon(player, winningTiles) {
     });
 }
 
+// Deprecated this, its only used once
 function setTileType(tile, newType) {
     return tile.className.replace(/x|o|new-game|empty/, newType);
 }
