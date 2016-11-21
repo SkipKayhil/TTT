@@ -15,14 +15,14 @@ function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
 
     const depth = xTiles.length + oTiles.length;
     const player = depth % 2 === 1 ? "x" : "o";
-    turn.depth = depth;
-    turn.player = player;
-    const mod = player === "x" ? 1 : -1;
+    // These are both unnecessary but make the output more verbose
+    //turn.depth = depth;
+    //turn.player = player;
 
     //check for player win
     if (checkWin(player, player === "x" ? xTiles : oTiles) != false) {
         //console.log("win condition: " + xTiles)
-        turn.score = (10 - depth) * mod;
+        turn.score = (10 - depth) * (player === "x" ? 1 : -1);
     } else if (depth === 9) {
         // if the depth is 9 and not a win, then its a tie
         turn.score = 0;
@@ -107,16 +107,14 @@ function setupViewport() {
 }
 
 function setupGame() {
-    var getTurn = setupTurnBoolean();
-    //var squareClicked = currySquareClicked(getTurn);
-    //setPlayerTurn = setupPlayerTurn(/*squareClicked*/);
+    const getTurn = setupTurnBoolean();
 
-    getElementArray("tile").forEach((value) => {
-        value.onclick = () => {tileClicked(getTurn, value)};
-        value.className = "tile empty enabled";
+    getElementArray("tile").forEach((tile) => {
+        tile.onclick = () => {tileClicked(getTurn, tile.id)};
+        tile.className = "tile empty enabled";
 
-        while(value.firstChild)
-            value.removeChild(value.firstChild);
+        while(tile.firstChild)
+            tile.removeChild(tile.firstChild);
     });
 
     if (getAI() === "x") doAITurn(getTurn);
@@ -136,15 +134,15 @@ function getOtherPlayer(currentTurn) {
     return currentTurn === "x" ? "o" : "x";
 }
 
-function tileClicked(getTurn, square) {
-    console.log(oldGetTurn() + " clicked on " + square.id);
+function tileClicked(getTurn, tileID) {
+    const tile = document.getElementById(tileID);
+    console.log(oldGetTurn() + " clicked on " + tileID);
 
     const player = getTurn();
-    const check = checkWin(player,
-        checkWin(player, getIdArray(player), [square.id]));
+    const check = checkWin(player, getIdArray(player), [tileID]);
 
-    square.className = setTileType(square, player).replace(" enabled", "");
-    square.onclick = () => {};
+    tile.className = setTileType(tile, player).replace(" enabled", "");
+    tile.onclick = () => {};
     if (check != false){
         setTilesAsWon(player, check);
         gameOver();
@@ -162,36 +160,33 @@ function doAITurn(getTurn, player, currentAIMode) {
 
 function getEasyAITurn() {
     const rand = Math.floor(Math.random() * 9) + 1;
-    if (document.getElementById(rand).className.includes("empty")) {
-        return document.getElementById(rand);
-    } else {
-        return getEasyAITurn();
-    }
+
+    return document.getElementById(rand).className.includes("empty")
+        ? rand
+        : getEasyAITurn();
 }
 
 function getMedAITurn() {
-    var play = null;
-
     //try to Win
-    play = findThirdTile(getIdArray(getAI()));
-    if (play != null) return play;
+    const winningMove = findThirdTile(getIdArray(getAI()));
+    if (winningMove != null) return winningMove;
 
     //try to not lose
-    play = findThirdTile(getIdArray(getOtherPlayer(getAI())));
-    if (play != null) return play;
+    const blockingMove = findThirdTile(getIdArray(getOtherPlayer(getAI())));
+    if (blockingMove != null) return blockingMove;
 
     //else random
+    console.log("this turn is random");
     return getEasyAITurn();
 
     function findThirdTile(squareArr){
         if (squareArr.length < 2) return null;
         for (var i = 0; i < squareArr.length - 1; i++) {
             for (var j = i + 1; j < squareArr.length; j++) {
-                var id = 15 - squareArr[i] - squareArr[j];
-                if (id > 0 && id < 10
-                    && document.getElementById(id).className.includes("empty"))
-                {
-                        return document.getElementById(id);
+                const id = 15 - squareArr[i] - squareArr[j];
+                if (id > 0 && id < 10 &&
+                    document.getElementById(id).className.includes("empty")) {
+                        return id;
                 }
             }
         }
@@ -202,13 +197,11 @@ function getHardAITurn(player) {
     // Skynet came online 2016/11/19 at 19:43:07
     if (document.getElementsByClassName("empty").length === 9) {
         // if every tile is empty, pick a random corner
-        return document.getElementById(pickRandomCorner());
+        return pickRandomCorner();
     } else if (document.getElementsByClassName("empty").length === 8) {
-        if (!document.getElementById(5).className.includes("empty")) {
-            return document.getElementById(pickRandomCorner());
-        } else {
-            return document.getElementById(5);
-        }
+        return document.getElementById(5).className.includes("empty")
+            ? 5
+            : pickRandomCorner();
     } else {
         const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         const currentGameTree = getStateChildren(
@@ -249,9 +242,9 @@ function getElementArray(className) {
 }
 
 function getIdArray(player) {
-    return getElementArray(player).reduce((a, b) => {
-        return a.concat(b.id);
-    }, []);
+    return getElementArray(player).map((element) => {
+        return element.id
+    });
 }
 
 function checkWin(player, numbers, partial) {
@@ -284,34 +277,29 @@ function checkWin(player, numbers, partial) {
             });
         }
     }
-    if (winningTiles.length === 0)
-        return false;
-    else return winningTiles;
+    return winningTiles.length === 0
+        ? false
+        : winningTiles;
 }
 
 function gameOver() {
     getElementArray("tile").forEach((tile) => {
-        tile.onclick = () => {};
-        if (tile.className.includes("enabled"))
+        if (tile.id === "5") {
+            tile.onclick = () => {setupGame();}
+
+            tile.appendChild(document.createElement("DIV").appendChild(
+                    document.createTextNode("NEW GAME")));
+
+            if (!tile.className.includes("enabled"))
+                tile.className += " enabled";
+
+        } else {
+            tile.onclick = () => {};
             tile.className = tile.className.replace(" enabled", "");
-        if (!tile.className.includes("win"))
-            tile.className += " disabled";
-    });
-
-    setMiddle(document.getElementById("5"));
-
-    function setMiddle(middle) {
-        middle.onclick = () => {
-            setupGame();
+            if (!tile.className.includes("win"))
+                tile.className += " disabled";
         }
-
-        var p = document.createElement("DIV");
-        p.appendChild(document.createTextNode("NEW GAME"));
-        middle.appendChild(p);
-
-        middle.className = middle.className.replace(" disabled", "");
-        middle.className += " enabled";
-    }
+    });
 }
 
 function setTilesAsWon(player, winningTiles) {
@@ -326,25 +314,25 @@ function setTileType(tile, newType) {
     return tile.className.replace(/x|o|new-game|empty/, newType);
 }
 
-function toggleSettings() {
-    if (document.getElementById("settings").className === "hidden") {
-        document.getElementById("settings").className = "visible";
-    } else {
-        document.getElementById("settings").className = "hidden";
-    }
+function toggleSettingsMenu() {
+    document.getElementById("settings").className =
+        document.getElementById("settings").className === "hidden"
+        ? "visible"
+        : "hidden";
 }
 
-var getAI = () => {
-    return "off";
-};
+function getAI() {
+    return getElementArray("selected")[0].id.substring(3)
+}
 
 function settingClicked(aiSetting) {
-    getAI = () => {
-        return aiSetting;
-    };
+    getElementArray("menu-item").forEach((setting) =>
+        setting.className = setting.className.replace(" selected", "")
+    );
+    document.getElementById("ai-" + aiSetting).className += " selected";
     console.log("AI is " + getAI());
 
-    toggleSettings();
+    toggleSettingsMenu();
     setupGame();
 }
 
