@@ -53,54 +53,11 @@ function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
 }
 
 window.onload = () => {
-    setupViewport();
     setupGame();
 }
 
 window.onresize = (event) => {
     setupViewport();
-}
-
-function setupViewport() {
-    const width = document.documentElement.clientWidth;
-    const height = document.documentElement.clientHeight;
-    var navHeight, gameWidth, gameHeight, footHeight, buttonMargin,
-        buttonPadding;
-
-    if (width > height) {       //landscape
-        if (width < 960) {          //phone
-            navHeight = 48;
-            buttonMargin = "0px 12px";
-            buttonPadding = "12px";
-        } else {                    //tablet
-            navHeight = 64;
-            buttonMargin = "4px 8px";
-            buttonPadding = "16px";
-        }
-        gameHeight = (height - 2 * navHeight) + "px";
-        gameWidth = gameHeight;
-    } else {                    //portrait
-        if (width < 600) {          //phone
-            navHeight = 56;
-            buttonMargin = "0px";
-            buttonPadding = "16px";
-        } else {                    //tablet
-            navHeight = 64;
-            buttonMargin = "4px 8px";
-            buttonPadding = "16px";
-        }
-        gameWidth = width * .96 + "px";
-        gameHeight = width + "px";
-    }
-    footHeight = navHeight + "px";
-    document.getElementById("navbar").style.height = navHeight + "px";
-    getElementArray("button").forEach((button) => {
-        button.style.margin = buttonMargin;
-        button.style.padding = buttonPadding;
-    });
-    document.getElementById("footer").style.height = footHeight;
-    document.getElementById("game").style.width = gameWidth;
-    document.getElementById("game").style.height = gameHeight;
 }
 
 function setupGame() {

@@ -62,10 +62,10 @@ html, body {
     /*dp8*/
     box-shadow: 0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12), 0px 5px 5px -3px rgba(0, 0, 0, 0.2);
 }
-.tile.enabled:hover::after {
+.visible, .tile.enabled:hover::after  {
     opacity: 1;
 }
-.tile.enabled:active::after {
+.hidden, .tile.enabled:active::after  {
     opacity: 0;
 }
 .tile.disabled {
@@ -105,9 +105,44 @@ html, body {
 .menu-item:hover {
     background: #EEEEEE;
 }
-.visible {
-    opacity: 1;
+@media screen and (orientation: portrait) {
+  #game {
+    height: 96vw;
+    width: 96vw;
+  }
 }
-.hidden {
-    opacity: 0;
+@media screen and (orientation: landscape) {
+  #game {
+    height: 80vh;
+    width: 80vh;
+  }
+}
+@media screen and (orientation: landscape) and (max-width: 960px) {
+  #navbar, #footer {
+    height: 48px;
+  }
+  .button {
+    margin: 0px 12px;
+    padding: 12px;
+  }
+}
+@media screen and (orientation: portrait) and (max-width: 600px) {
+  #navbar, #footer {
+    height: 56px;
+  }
+  .button {
+    margin: 0px;
+    padding: 16px;
+  }
+}
+/* tablets */
+@media screen and (orientation: landscape) and (min-width: 961px),
+  (orientation: portrait) and (min-width: 601px){
+  #navbar, #footer {
+    height: 64px;
+  }
+  .button {
+    margin: 4px 8px;
+    padding: 16px;
+  }
 }
