@@ -1,5 +1,5 @@
 // TODO: Alright time for some thoughts:
-// 1. Use @media queries for css instead of setupViewport
+// 1. Ensure game looks nice in landscape mode
 // 2. CheckWin should only check if new tile creates win.
 // 3. Add functionality to set AI difficulty (Easy, Good, Hard
 // 4. Refactor variables so code is more readable/clean up code
@@ -8,17 +8,17 @@
 // X. make the tileIDs rotate so gameTree is only 4/9ths the size
 "use strict";
 
-function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
+function getStateChildren(tilesLeft, playerTiles, opponentTiles, tileID) {
     var turn = {};
     turn.tileID = tileID;
     turn.score = true;
 
-    const depth = xTiles.length + oTiles.length;
+    const depth = playerTiles.length + opponentTiles.length;
     const player = depth % 2 === 1 ? "x" : "o";
 
     //check for player win
-    if (checkWin(player, player === "x" ? xTiles : oTiles)) {
-        //console.log("win condition: " + xTiles)
+    //console.log(playerTiles, playerTiles.slice(0, -1), playerTiles.slice(-1));
+    if (checkWin(player, playerTiles.slice(0, -1), playerTiles.slice(-1))) {
         turn.score = (10 - depth) * (player === "x" ? 1 : -1);
     } else if (depth === 9) {
         // if the depth is 9 and not a win, then its a tie
@@ -26,22 +26,12 @@ function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
     } else {
         turn.children = {};
         tilesLeft.forEach((tile) => {
-            if (player === "x") {
-                turn.children[tile] = getStateChildren(
-                    tilesLeft.filter(x => x != tile),
-                    xTiles,
-                    oTiles.concat(tile),
-                    tile
-                );
-            }
-            else {
-                turn.children[tile] = getStateChildren(
-                    tilesLeft.filter(x => x != tile),
-                    xTiles.concat(tile),
-                    oTiles,
-                    tile
-                );
-            }
+            turn.children[tile] = getStateChildren(
+                tilesLeft.filter(x => x != tile),
+                opponentTiles.concat(tile),
+                playerTiles,
+                tile
+            );
             if (turn.score === true ||
                 (player === "x" && turn.children[tile].score < turn.score) ||
                 (player === "o" && turn.children[tile].score > turn.score)) {
@@ -49,15 +39,11 @@ function getStateChildren(tilesLeft, xTiles, oTiles, tileID) {
             }
         });
     }
-    return turn;
+    return turn; //currently returning the children, goal: return best child?
 }
 
 window.onload = () => {
     setupGame();
-}
-
-window.onresize = (event) => {
-    setupViewport();
 }
 
 function setupGame() {
@@ -160,7 +146,7 @@ function getHardAITurn(player) {
         const currentGameTree = getStateChildren(
             allMoves.filter(
                 x => document.getElementById(x).className.includes("empty")
-            ), getIdArray("x"), getIdArray("o"), 0);
+            ), getIdArray(getOtherPlayer(player)), getIdArray(player), 0);
 //TODO: refactor getStateChildren to return the key so it can be used here
         //console.log(currentGameTree);
         var finalTurn;
