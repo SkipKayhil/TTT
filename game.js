@@ -189,8 +189,7 @@ function checkWin (player, numbers, partial) {
   partial = partial || []
 
   sum = partial.reduce((a, b) => {
-    // return parseInt(a) + parseInt(b)
-    return a + b
+    return parseInt(a, 10) + parseInt(b, 10)
   }, 0)
 
   if (sum === 15 && partial.length === 3) return partial
