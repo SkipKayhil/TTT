@@ -17,8 +17,8 @@ function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
   const player = depth % 2 === 1 ? 'x' : 'o'
 
   // check for player win
-  // console.log(playerTiles, playerTiles.slice(0, -1), playerTiles.slice(-1))
-  if (checkWin(player, playerTiles.slice(0, -1), playerTiles.slice(-1))) {
+  // console.log(playerTiles, tileID)
+  if (checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1))) {
     turn.score = (10 - depth) * (player === 'x' ? 1 : -1)
   } else if (depth === 9) {
     // if the depth is 9 and not a win, then its a tie
@@ -78,7 +78,7 @@ function tileClicked (getTurn, tileID) {
   console.log(oldGetTurn() + ' clicked on ' + tileID)
 
   const player = getTurn()
-  const check = checkWin(player, getIdArray(player), [tileID])
+  const check = checkWin(getIdArray(player), [tileID])
 
   tile.className = setTileType(tile, player).replace(' enabled', '')
   tile.onclick = () => {}
@@ -180,7 +180,7 @@ function getIdArray (player) {
   })
 }
 
-function checkWin (player, numbers, partial) {
+function checkWin (numbers, partial) {
   //  Goal: return array of winning tile values
   //  if there are no winning values, return false
   var sum
@@ -199,7 +199,7 @@ function checkWin (player, numbers, partial) {
   for (var i = 0; i < numbers.length; i++) {
     const n = numbers[i]
     const remaining = numbers.slice(i + 1)
-    const check = checkWin(player, remaining, partial.concat([n]))
+    const check = checkWin(remaining, partial.concat([n]))
     if (check) {
       check.forEach((winningTile) => {
         if (winningTiles.indexOf(winningTile) === -1) {
