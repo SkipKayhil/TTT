@@ -56,11 +56,10 @@ window.addEventListener('load', () => {
 });
 
 function setupGame (aiSetting) {
-  //const getTurn = setupTurnBoolean();
-  const tileClicked = setupGameState();
+  const tileClicked = setupGameState(aiSetting);
 
   getElementArray('tile').forEach((tile) => {
-    tile.onclick = () => tileClicked(aiSetting, parseInt(tile.id));
+    tile.onclick = () => tileClicked(parseInt(tile.id));
     tile.className = 'tile empty enabled';
 
     while (tile.firstChild) tile.removeChild(tile.firstChild);
@@ -69,35 +68,28 @@ function setupGame (aiSetting) {
   if (aiSetting === 'x') doAITurn(tileClicked);
 }
 
-// Can this be moved into setupGameState?
-// Closure that holds the state of the current turn
-// function setupTurnBoolean () {
-//   var turns = true;
-//
-//   return () => {
-//     turns = !turns;
-//     return turns ? 'o' : 'x';
-//   };
-// }
-
 function getOtherPlayer (currentTurn) {
   return currentTurn === 'x' ? 'o' : 'x';
 }
 
-function setupGameState () {
-  // let xState = [];
-  // let oState = [];
-  let state = {x: [], o: [], turns: 0, nextPlayer: 'x'};
+function setupGameState (aiSetting) {
+  let state = {
+    x: [],
+    o: [],
+    turns: 0,
+    nextPlayer: 'x',
+    ai: aiSetting
+  };
 
-  return function tileClicked (aiSetting, tileID) {
+  return function tileClicked (tileID) {
     const tile = document.getElementById(tileID);
-    const player = state['nextPlayer']; //getTurn();
+    const player = state.nextPlayer;
     const check = checkWin(state[player], [tileID]);
 
     state = {
       ...state,
       [player]: [...state[player], tileID],
-      turns: state['turns'] + 1,
+      turns: state.turns + 1,
       nextPlayer: player === 'x' ? 'o' : 'x'
     };
 
@@ -113,17 +105,17 @@ function setupGameState () {
         document.getElementById(tile).className += ' win';
       });
 
-      gameOver(aiSetting);
-    } else if (state['turns'] === 9) {
-      gameOver(aiSetting);
-    } else if (state['nextPlayer'] === aiSetting) {
-      doAITurn(tileClicked, aiSetting);
+      gameOver(state.ai);
+    } else if (state.turns === 9) {
+      gameOver(state.ai);
+    } else if (state.nextPlayer === state.ai) {
+      doAITurn(tileClicked, state.ai);
     }
   }
 }
 
 function doAITurn (tileClicked, aiPlayer, currentAIMode) {
-  tileClicked(aiPlayer, getHardAITurn(aiPlayer));
+  tileClicked(getHardAITurn(aiPlayer));
 }
 
 function getEasyAITurn () {
@@ -161,6 +153,10 @@ function getMedAITurn (aiPlayer) {
   }
 }
 
+// elements of the state needed:
+// - turns (if length = 9 or 8 then do something)
+// - x and o tiles
+// - aiPlayer
 function getHardAITurn (player) {
   // Skynet came online 2016/11/19 at 19:43:07
   if (document.getElementsByClassName('empty').length === 9) {
@@ -195,8 +191,7 @@ function getHardAITurn (player) {
   }
 
   function pickRandomCorner () {
-    const cornerTiles = [2, 4, 6, 8];
-    return cornerTiles[Math.floor(Math.random() * 4)];
+    return (Math.floor(Math.random() * 4) + 1) * 2;
   }
 }
 
@@ -274,12 +269,7 @@ function toggleSettingsMenu () {
 }
 
 function settingClicked (aiSetting) {
-  getElementArray('menu-item').forEach(setting =>
-    setting.className = setting.className.replace(' selected', '')
-  );
-  document.getElementById('ai-' + aiSetting).className += ' selected';
   console.log('AI is ' + aiSetting);
-
   toggleSettingsMenu();
   setupGame(aiSetting);
 }
