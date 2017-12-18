@@ -10,8 +10,8 @@
 //      - restructure method: return [tile, score] as described above
 // - Add functionality to set AI difficulty (Easy, Good, Hard)
 // - Refactor variables so code is more readable/clean up code
-// -   Add safari prefixes?
-// -  Add mobile touch support
+// - Add safari prefixes?
+// - Add mobile touch support
 // - make the tileIDs rotate so gameTree is only 4/9ths the size
 'use strict';
 
@@ -66,7 +66,7 @@ function setupGame (aiSetting) {
   if (aiSetting === 'x') doAITurn(getTurn);
 }
 
-// This closure gets passed around because it resets at the end of the game
+// Closure that holds the state of the current turn
 function setupTurnBoolean () {
   var turns = true;
 
@@ -82,15 +82,21 @@ function getOtherPlayer (currentTurn) {
 
 function tileClicked (aiSetting, getTurn, tileID) {
   const tile = document.getElementById(tileID);
-  console.log(oldGetTurn() + ' clicked on ' + tileID);
-
   const player = getTurn();
   const check = checkWin(getIdArray(player), [tileID]);
+  // if state gets added here, print it out, i.e. [x tiles], [y tiles]
+  console.log(player + ' clicked on ' + tileID);
 
-  tile.className = setTileType(tile, player).replace(' enabled', '');
+  tile.className = tile.className.replace('empty enabled', player);
   tile.onclick = () => {};
   if (check) {
-    setTilesAsWon(player, check);
+    //setTilesAsWon(player, check);
+    console.log(player + ' has won!');
+
+    check.forEach((tile) => {
+      document.getElementById(tile).className += ' win';
+    });
+
     gameOver(aiSetting);
   } else if (getElementArray('empty').length === 0) {
     gameOver(aiSetting);
@@ -178,9 +184,14 @@ function getHardAITurn (player) {
 }
 
 function getElementArray (className) {
-  return [].slice.call(document.getElementsByClassName(className));
+  // This is literally just a wrapper to allow forEach usage.
+  // getElementsByClassName returns a NodeList, which doesn't universally
+  // support forEach yet.
+  return Array.from(document.getElementsByClassName(className));
 }
 
+// used to get the tiles of a player... if this gets held
+// in the functions state then it becomes unneccessary and cleaner?
 function getIdArray (player) {
   return getElementArray(player).map((element) => {
     return element.id;
@@ -238,32 +249,12 @@ function gameOver (aiSetting) {
   });
 }
 
-// Deprecate this, its only used once
-function setTilesAsWon (player, winningTiles) {
-  console.log(player + ' has won!');
-
-  winningTiles.forEach((tile) => {
-    document.getElementById(tile).className += ' win';
-  });
-}
-
-// Deprecated this, its only used once
-function setTileType (tile, newType) {
-  return tile.className.replace(/x|o|new-game|empty/, newType);
-}
-
 function toggleSettingsMenu () {
   document.getElementById('settings').className =
     document.getElementById('settings').className === 'hidden'
       ? 'visible'
       : 'hidden';
 }
-
-// function getAI () {
-//   return getElementArray('selected').length > 0
-//     ? getElementArray('selected')[0].id.substring(3)
-//     : 'off';
-// }
 
 function settingClicked (aiSetting) {
   getElementArray('menu-item').forEach(setting =>
@@ -274,15 +265,4 @@ function settingClicked (aiSetting) {
 
   toggleSettingsMenu();
   setupGame(aiSetting);
-}
-
-// TODO: get rid of all this old code down here
-//      this is only used for console debugging
-function oldGetTurn () {
-  console.log(getNumElements('x') + ' x, ' + getNumElements('o') + ' o');
-  return getNumElements('x') === getNumElements('o') ? 'x' : 'o';
-}
-
-function getNumElements (elementClass) {
-  return document.getElementsByClassName(elementClass).length;
 }
