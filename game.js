@@ -13,6 +13,8 @@
 // - Add safari prefixes?
 // - Add mobile touch support
 // - make the tileIDs rotate so gameTree is only 4/9ths the size
+// - possibly don't overwrite tile.onclick, just enable/disable?
+//    - either way every tile needs to be iterated and enabled so it doesn't matter?
 'use strict';
 
 function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
@@ -54,59 +56,74 @@ window.addEventListener('load', () => {
 });
 
 function setupGame (aiSetting) {
-  const getTurn = setupTurnBoolean();
+  //const getTurn = setupTurnBoolean();
+  const tileClicked = setupGameState();
 
   getElementArray('tile').forEach((tile) => {
-    tile.onclick = () => tileClicked(aiSetting, getTurn, tile.id);
+    tile.onclick = () => tileClicked(aiSetting, parseInt(tile.id));
     tile.className = 'tile empty enabled';
 
     while (tile.firstChild) tile.removeChild(tile.firstChild);
   });
 
-  if (aiSetting === 'x') doAITurn(getTurn);
+  if (aiSetting === 'x') doAITurn(tileClicked);
 }
 
+// Can this be moved into setupGameState?
 // Closure that holds the state of the current turn
-function setupTurnBoolean () {
-  var turns = true;
-
-  return () => {
-    turns = !turns;
-    return turns ? 'o' : 'x';
-  };
-}
+// function setupTurnBoolean () {
+//   var turns = true;
+//
+//   return () => {
+//     turns = !turns;
+//     return turns ? 'o' : 'x';
+//   };
+// }
 
 function getOtherPlayer (currentTurn) {
   return currentTurn === 'x' ? 'o' : 'x';
 }
 
-function tileClicked (aiSetting, getTurn, tileID) {
-  const tile = document.getElementById(tileID);
-  const player = getTurn();
-  const check = checkWin(getIdArray(player), [tileID]);
-  // if state gets added here, print it out, i.e. [x tiles], [y tiles]
-  console.log(player + ' clicked on ' + tileID);
+function setupGameState () {
+  // let xState = [];
+  // let oState = [];
+  let state = {x: [], o: [], turns: 0, nextPlayer: 'x'};
 
-  tile.className = tile.className.replace('empty enabled', player);
-  tile.onclick = () => {};
-  if (check) {
-    //setTilesAsWon(player, check);
-    console.log(player + ' has won!');
+  return function tileClicked (aiSetting, tileID) {
+    const tile = document.getElementById(tileID);
+    const player = state['nextPlayer']; //getTurn();
+    const check = checkWin(state[player], [tileID]);
 
-    check.forEach((tile) => {
-      document.getElementById(tile).className += ' win';
-    });
+    state = {
+      ...state,
+      [player]: [...state[player], tileID],
+      turns: state['turns'] + 1,
+      nextPlayer: player === 'x' ? 'o' : 'x'
+    };
 
-    gameOver(aiSetting);
-  } else if (getElementArray('empty').length === 0) {
-    gameOver(aiSetting);
-  } else if (getOtherPlayer(player) === aiSetting) {
-    doAITurn(getTurn, aiSetting);
+    console.log(player + ' clicked on ' + tileID);
+    console.log('State:', state);
+
+    tile.className = tile.className.replace('empty enabled', player);
+    tile.onclick = () => {};
+    if (check) {
+      console.log(player + ' has won!');
+
+      check.forEach((tile) => {
+        document.getElementById(tile).className += ' win';
+      });
+
+      gameOver(aiSetting);
+    } else if (state['turns'] === 9) {
+      gameOver(aiSetting);
+    } else if (state['nextPlayer'] === aiSetting) {
+      doAITurn(tileClicked, aiSetting);
+    }
   }
 }
 
-function doAITurn (getTurn, aiPlayer, currentAIMode) {
-  tileClicked(aiPlayer, getTurn, getHardAITurn(aiPlayer));
+function doAITurn (tileClicked, aiPlayer, currentAIMode) {
+  tileClicked(aiPlayer, getHardAITurn(aiPlayer));
 }
 
 function getEasyAITurn () {
