@@ -50,20 +50,20 @@ function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
 }
 
 window.addEventListener('load', () => {
-  setupGame();
+  setupGame('off');
 });
 
-function setupGame () {
+function setupGame (aiSetting) {
   const getTurn = setupTurnBoolean();
 
   getElementArray('tile').forEach((tile) => {
-    tile.onclick = () => tileClicked(getTurn, tile.id);
+    tile.onclick = () => tileClicked(aiSetting, getTurn, tile.id);
     tile.className = 'tile empty enabled';
 
     while (tile.firstChild) tile.removeChild(tile.firstChild);
   });
 
-  if (getAI() === 'x') doAITurn(getTurn);
+  if (aiSetting === 'x') doAITurn(getTurn);
 }
 
 // This closure gets passed around because it resets at the end of the game
@@ -80,7 +80,7 @@ function getOtherPlayer (currentTurn) {
   return currentTurn === 'x' ? 'o' : 'x';
 }
 
-function tileClicked (getTurn, tileID) {
+function tileClicked (aiSetting, getTurn, tileID) {
   const tile = document.getElementById(tileID);
   console.log(oldGetTurn() + ' clicked on ' + tileID);
 
@@ -91,16 +91,16 @@ function tileClicked (getTurn, tileID) {
   tile.onclick = () => {};
   if (check) {
     setTilesAsWon(player, check);
-    gameOver();
+    gameOver(aiSetting);
   } else if (getElementArray('empty').length === 0) {
-    gameOver();
-  } else if (getOtherPlayer(player) === getAI()) {
-    doAITurn(getTurn, getAI());
+    gameOver(aiSetting);
+  } else if (getOtherPlayer(player) === aiSetting) {
+    doAITurn(getTurn, aiSetting);
   }
 }
 
-function doAITurn (getTurn, player, currentAIMode) {
-  tileClicked(getTurn, getHardAITurn(player));
+function doAITurn (getTurn, aiPlayer, currentAIMode) {
+  tileClicked(aiPlayer, getTurn, getHardAITurn(aiPlayer));
 }
 
 function getEasyAITurn () {
@@ -111,13 +111,13 @@ function getEasyAITurn () {
     : getEasyAITurn();
 }
 
-function getMedAITurn () {
+function getMedAITurn (aiPlayer) {
   // try to Win
-  const winningMove = findThirdTile(getIdArray(getAI()));
+  const winningMove = findThirdTile(getIdArray(aiPlayer));
   if (winningMove != null) return winningMove;
 
   // try to not lose
-  const blockingMove = findThirdTile(getIdArray(getOtherPlayer(getAI())));
+  const blockingMove = findThirdTile(getIdArray(getOtherPlayer(aiPlayer)));
   if (blockingMove != null) return blockingMove;
 
   // else random
@@ -221,10 +221,10 @@ function checkWin (numbers, partial) {
 }
 
 // Possibly deprecate this, it's only used once
-function gameOver () {
+function gameOver (aiSetting) {
   getElementArray('tile').forEach((tile) => {
     if (tile.id === '5') {
-      tile.onclick = () => { setupGame(); };
+      tile.onclick = () => { setupGame(aiSetting); };
 
       tile.appendChild(document.createElement('DIV').appendChild(
         document.createTextNode('NEW GAME')));
@@ -259,21 +259,21 @@ function toggleSettingsMenu () {
       : 'hidden';
 }
 
-function getAI () {
-  return getElementArray('selected').length > 0
-    ? getElementArray('selected')[0].id.substring(3)
-    : 'off';
-}
+// function getAI () {
+//   return getElementArray('selected').length > 0
+//     ? getElementArray('selected')[0].id.substring(3)
+//     : 'off';
+// }
 
 function settingClicked (aiSetting) {
   getElementArray('menu-item').forEach(setting =>
     setting.className = setting.className.replace(' selected', '')
   );
   document.getElementById('ai-' + aiSetting).className += ' selected';
-  console.log('AI is ' + getAI());
+  console.log('AI is ' + aiSetting);
 
   toggleSettingsMenu();
-  setupGame();
+  setupGame(aiSetting);
 }
 
 // TODO: get rid of all this old code down here
