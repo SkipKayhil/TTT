@@ -49,9 +49,9 @@ function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
   return turn; // currently returning the children, goal: return best child?
 }
 
-window.onload = () => {
+window.addEventListener('load', () => {
   setupGame();
-};
+});
 
 function setupGame () {
   const getTurn = setupTurnBoolean();
@@ -260,7 +260,9 @@ function toggleSettingsMenu () {
 }
 
 function getAI () {
-  return getElementArray('selected')[0].id.substring(3);
+  return getElementArray('selected').length > 0
+    ? getElementArray('selected')[0].id.substring(3)
+    : 'off';
 }
 
 function settingClicked (aiSetting) {
