@@ -1,130 +1,137 @@
-// TODO: Alright time for some thoughts:
-// 1. Ensure game looks nice in landscape mode
-// 2. CheckWin should only check if new tile creates win.
-// 3. Add functionality to set AI difficulty (Easy, Good, Hard
-// 4. Refactor variables so code is more readable/clean up code
-// 5.   Add safari prefixes because apparently webkit has to be special
-// 6a.  Add mobile touch support
-// X. make the tileIDs rotate so gameTree is only 4/9ths the size
-'use strict'
+// TODO:
+// - Ensure game looks nice in landscape mode -> move to Grid instead of flex?
+// - Refactor getHardAITurn to use getStateChildren better
+//    - make getStateChildren return best move instead of children
+//    - possibly have it return [tile, score] so that both can be used?
+//    - additional optimizations to getStateChildren
+//      - use only [] instead of {}
+//      - be more efficient (whats kept on stack, passed down, etc.)
+//      - add tests so that the debug information isn't needed
+//      - restructure method: return [tile, score] as described above
+// - Add functionality to set AI difficulty (Easy, Good, Hard)
+// - Refactor variables so code is more readable/clean up code
+// -   Add safari prefixes?
+// -  Add mobile touch support
+// - make the tileIDs rotate so gameTree is only 4/9ths the size
+'use strict';
 
 function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
-  var turn = {}
-  turn.tileID = tileID
-  turn.score = true
+  var turn = {};
+  turn.tileID = tileID;
+  turn.score = true;
 
-  const depth = playerTiles.length + opponentTiles.length
-  const player = depth % 2 === 1 ? 'x' : 'o'
+  const depth = playerTiles.length + opponentTiles.length;
+  const player = depth % 2 === 1 ? 'x' : 'o';
 
   // check for player win
   // console.log(playerTiles, tileID)
   if (checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1))) {
-    turn.score = (10 - depth) * (player === 'x' ? 1 : -1)
+    turn.score = (10 - depth) * (player === 'x' ? 1 : -1);
   } else if (depth === 9) {
     // if the depth is 9 and not a win, then its a tie
-    turn.score = 0
+    turn.score = 0;
   } else {
-    turn.children = {}
+    turn.children = {};
     tilesLeft.forEach((tile) => {
       turn.children[tile] = getStateChildren(
         tilesLeft.filter(x => x !== tile),
         opponentTiles.concat(tile),
         playerTiles,
         tile
-        )
+      );
       if (turn.score === true ||
         (player === 'x' && turn.children[tile].score < turn.score) ||
         (player === 'o' && turn.children[tile].score > turn.score)) {
-        turn.score = turn.children[tile].score
+        turn.score = turn.children[tile].score;
       }
-    })
+    });
   }
-  return turn // currently returning the children, goal: return best child?
+  return turn; // currently returning the children, goal: return best child?
 }
 
 window.onload = () => {
-  setupGame()
-}
+  setupGame();
+};
 
 function setupGame () {
-  const getTurn = setupTurnBoolean()
+  const getTurn = setupTurnBoolean();
 
   getElementArray('tile').forEach((tile) => {
-    tile.onclick = () => { tileClicked(getTurn, tile.id) }
-    tile.className = 'tile empty enabled'
+    tile.onclick = () => tileClicked(getTurn, tile.id);
+    tile.className = 'tile empty enabled';
 
-    while (tile.firstChild) tile.removeChild(tile.firstChild)
-  })
+    while (tile.firstChild) tile.removeChild(tile.firstChild);
+  });
 
-  if (getAI() === 'x') doAITurn(getTurn)
+  if (getAI() === 'x') doAITurn(getTurn);
 }
 
 // This closure gets passed around because it resets at the end of the game
 function setupTurnBoolean () {
-  var turns = true
+  var turns = true;
 
   return () => {
-    turns = !turns
-    return turns ? 'o' : 'x'
-  }
+    turns = !turns;
+    return turns ? 'o' : 'x';
+  };
 }
 
 function getOtherPlayer (currentTurn) {
-  return currentTurn === 'x' ? 'o' : 'x'
+  return currentTurn === 'x' ? 'o' : 'x';
 }
 
 function tileClicked (getTurn, tileID) {
-  const tile = document.getElementById(tileID)
-  console.log(oldGetTurn() + ' clicked on ' + tileID)
+  const tile = document.getElementById(tileID);
+  console.log(oldGetTurn() + ' clicked on ' + tileID);
 
-  const player = getTurn()
-  const check = checkWin(getIdArray(player), [tileID])
+  const player = getTurn();
+  const check = checkWin(getIdArray(player), [tileID]);
 
-  tile.className = setTileType(tile, player).replace(' enabled', '')
-  tile.onclick = () => {}
+  tile.className = setTileType(tile, player).replace(' enabled', '');
+  tile.onclick = () => {};
   if (check) {
-    setTilesAsWon(player, check)
-    gameOver()
+    setTilesAsWon(player, check);
+    gameOver();
   } else if (getElementArray('empty').length === 0) {
-    gameOver()
+    gameOver();
   } else if (getOtherPlayer(player) === getAI()) {
-    doAITurn(getTurn, getAI())
+    doAITurn(getTurn, getAI());
   }
 }
 
 function doAITurn (getTurn, player, currentAIMode) {
-  tileClicked(getTurn, getHardAITurn(player))
+  tileClicked(getTurn, getHardAITurn(player));
 }
 
 function getEasyAITurn () {
-  const rand = Math.floor(Math.random() * 9) + 1
+  const rand = Math.floor(Math.random() * 9) + 1;
 
   return document.getElementById(rand).className.includes('empty')
     ? rand
-    : getEasyAITurn()
+    : getEasyAITurn();
 }
 
 function getMedAITurn () {
   // try to Win
-  const winningMove = findThirdTile(getIdArray(getAI()))
-  if (winningMove != null) return winningMove
+  const winningMove = findThirdTile(getIdArray(getAI()));
+  if (winningMove != null) return winningMove;
 
   // try to not lose
-  const blockingMove = findThirdTile(getIdArray(getOtherPlayer(getAI())))
-  if (blockingMove != null) return blockingMove
+  const blockingMove = findThirdTile(getIdArray(getOtherPlayer(getAI())));
+  if (blockingMove != null) return blockingMove;
 
   // else random
-  console.log('this turn is random')
-  return getEasyAITurn()
+  console.log('this turn is random');
+  return getEasyAITurn();
 
   function findThirdTile (squareArr) {
-    if (squareArr.length < 2) return null
+    if (squareArr.length < 2) return null;
     for (var i = 0; i < squareArr.length - 1; i++) {
       for (var j = i + 1; j < squareArr.length; j++) {
-        const id = 15 - squareArr[i] - squareArr[j]
+        const id = 15 - squareArr[i] - squareArr[j];
         if (id > 0 && id < 10 &&
           document.getElementById(id).className.includes('empty')) {
-          return id
+          return id;
         }
       }
     }
@@ -135,145 +142,145 @@ function getHardAITurn (player) {
   // Skynet came online 2016/11/19 at 19:43:07
   if (document.getElementsByClassName('empty').length === 9) {
     // if every tile is empty, pick a random corner
-    return pickRandomCorner()
+    return pickRandomCorner();
   } else if (document.getElementsByClassName('empty').length === 8) {
     return document.getElementById(5).className.includes('empty')
       ? 5
-      : pickRandomCorner()
+      : pickRandomCorner();
   } else {
-    const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     const currentGameTree = getStateChildren(
       allMoves.filter(
         x => document.getElementById(x).className.includes('empty')
-        ), getIdArray(getOtherPlayer(player)), getIdArray(player), 0)
+      ), getIdArray(getOtherPlayer(player)), getIdArray(player), 0);
 // TODO: refactor getStateChildren to return the key so it can be used here
       // console.log(currentGameTree)
-    var finalTurn
-    var finalScore = true
+    var finalTurn;
+    var finalScore = true;
     for (var key in currentGameTree.children) {
-      const possibleTurn = currentGameTree.children[key]
+      const possibleTurn = currentGameTree.children[key];
       if (finalScore === true ||
         (player === 'x' && possibleTurn.score > finalScore) ||
         (player === 'o' && possibleTurn.score < finalScore) ||
         (possibleTurn.score === finalScore && Math.floor(Math.random() * 2) === 1)) {
         // console.log(possibleTurn + ''s score is ' + possibleTurn.score + ' and is less than ' + finalScore)
-        finalTurn = key
-        finalScore = possibleTurn.score
+        finalTurn = key;
+        finalScore = possibleTurn.score;
       }
     }
-    return finalTurn
+    return finalTurn;
   }
 
   function pickRandomCorner () {
-    const cornerTiles = [2, 4, 6, 8]
-    return cornerTiles[Math.floor(Math.random() * 4)]
+    const cornerTiles = [2, 4, 6, 8];
+    return cornerTiles[Math.floor(Math.random() * 4)];
   }
 }
 
 function getElementArray (className) {
-  return [].slice.call(document.getElementsByClassName(className))
+  return [].slice.call(document.getElementsByClassName(className));
 }
 
 function getIdArray (player) {
   return getElementArray(player).map((element) => {
-    return element.id
-  })
+    return element.id;
+  });
 }
 
 function checkWin (numbers, partial) {
   //  Goal: return array of winning tile values
   //  if there are no winning values, return false
-  var sum
-  var winningTiles = []
+  var sum;
+  var winningTiles = [];
 
-  partial = partial || []
+  partial = partial || [];
 
   sum = partial.reduce((a, b) => {
-    return parseInt(a, 10) + parseInt(b, 10)
-  }, 0)
+    return parseInt(a, 10) + parseInt(b, 10);
+  }, 0);
 
-  if (sum === 15 && partial.length === 3) return partial
+  if (sum === 15 && partial.length === 3) return partial;
 
-  if (sum >= 15 || partial.length > 2) return false
+  if (sum >= 15 || partial.length > 2) return false;
 
   for (var i = 0; i < numbers.length; i++) {
-    const n = numbers[i]
-    const remaining = numbers.slice(i + 1)
-    const check = checkWin(remaining, partial.concat([n]))
+    const n = numbers[i];
+    const remaining = numbers.slice(i + 1);
+    const check = checkWin(remaining, partial.concat([n]));
     if (check) {
       check.forEach((winningTile) => {
         if (winningTiles.indexOf(winningTile) === -1) {
-          winningTiles = winningTiles.concat(winningTile)
+          winningTiles = winningTiles.concat(winningTile);
         }
-      })
+      });
     }
   }
   return winningTiles.length === 0
     ? false
-    : winningTiles
+    : winningTiles;
 }
 
 // Possibly deprecate this, it's only used once
 function gameOver () {
   getElementArray('tile').forEach((tile) => {
     if (tile.id === '5') {
-      tile.onclick = () => { setupGame() }
+      tile.onclick = () => { setupGame(); };
 
       tile.appendChild(document.createElement('DIV').appendChild(
-        document.createTextNode('NEW GAME')))
+        document.createTextNode('NEW GAME')));
 
-      if (!tile.className.includes('enabled')) tile.className += ' enabled'
+      if (!tile.className.includes('enabled')) tile.className += ' enabled';
     } else {
-      tile.onclick = () => {}
-      tile.className = tile.className.replace(' enabled', '')
-      if (!tile.className.includes('win')) tile.className += ' disabled'
+      tile.onclick = () => {};
+      tile.className = tile.className.replace(' enabled', '');
+      if (!tile.className.includes('win')) tile.className += ' disabled';
     }
-  })
+  });
 }
 
 // Deprecate this, its only used once
 function setTilesAsWon (player, winningTiles) {
-  console.log(player + ' has won!')
+  console.log(player + ' has won!');
 
   winningTiles.forEach((tile) => {
-    document.getElementById(tile).className += ' win'
-  })
+    document.getElementById(tile).className += ' win';
+  });
 }
 
 // Deprecated this, its only used once
 function setTileType (tile, newType) {
-  return tile.className.replace(/x|o|new-game|empty/, newType)
+  return tile.className.replace(/x|o|new-game|empty/, newType);
 }
 
 function toggleSettingsMenu () {
   document.getElementById('settings').className =
     document.getElementById('settings').className === 'hidden'
       ? 'visible'
-      : 'hidden'
+      : 'hidden';
 }
 
 function getAI () {
-  return getElementArray('selected')[0].id.substring(3)
+  return getElementArray('selected')[0].id.substring(3);
 }
 
 function settingClicked (aiSetting) {
-  getElementArray('menu-item').forEach((setting) =>
+  getElementArray('menu-item').forEach(setting =>
     setting.className = setting.className.replace(' selected', '')
-  )
-  document.getElementById('ai-' + aiSetting).className += ' selected'
-  console.log('AI is ' + getAI())
+  );
+  document.getElementById('ai-' + aiSetting).className += ' selected';
+  console.log('AI is ' + getAI());
 
-  toggleSettingsMenu()
-  setupGame()
+  toggleSettingsMenu();
+  setupGame();
 }
 
 // TODO: get rid of all this old code down here
 //      this is only used for console debugging
 function oldGetTurn () {
-  console.log(getNumElements('x') + ' x, ' + getNumElements('o') + ' o')
-  return getNumElements('x') === getNumElements('o') ? 'x' : 'o'
+  console.log(getNumElements('x') + ' x, ' + getNumElements('o') + ' o');
+  return getNumElements('x') === getNumElements('o') ? 'x' : 'o';
 }
 
 function getNumElements (elementClass) {
-  return document.getElementsByClassName(elementClass).length
+  return document.getElementsByClassName(elementClass).length;
 }
