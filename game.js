@@ -1,13 +1,8 @@
 // TODO:
 // - Ensure game looks nice in landscape mode -> move to Grid instead of flex?
 // - Refactor getHardAITurn to use getStateChildren better
-//    - make getStateChildren return best move instead of children
-//    - possibly have it return [tile, score] so that both can be used?
 //    - additional optimizations to getStateChildren
-//      - use only [] instead of {}
-//      - be more efficient (whats kept on stack, passed down, etc.)
 //      - add tests so that the debug information isn't needed
-//      - restructure method: return [tile, score] as described above
 // - Add functionality to set AI difficulty (Easy, Good, Hard)
 // - Refactor variables so code is more readable/clean up code
 // - Add safari prefixes?
@@ -18,37 +13,32 @@
 'use strict';
 
 function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
-  var turn = {};
-  turn.tileID = tileID;
-  turn.score = true;
-
+  const retValue = [null, null, tileID]; // 0: best move, 1: score, 2: tileID
   const depth = playerTiles.length + opponentTiles.length;
   const player = depth % 2 === 1 ? 'x' : 'o';
 
-  // check for player win
-  // console.log(playerTiles, tileID)
   if (checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1))) {
-    turn.score = (10 - depth) * (player === 'x' ? 1 : -1);
+    retValue[1] = (10 - depth) * (player === 'x' ? 1 : -1);
   } else if (depth === 9) {
     // if the depth is 9 and not a win, then its a tie
-    turn.score = 0;
+    retValue[1] = 0;
   } else {
-    turn.children = {};
-    tilesLeft.forEach((tile) => {
-      turn.children[tile] = getStateChildren(
+    tilesLeft.forEach(tile => {
+      const child = getStateChildren(
         tilesLeft.filter(x => x !== tile),
         opponentTiles.concat(tile),
         playerTiles,
         tile
       );
-      if (turn.score === true ||
-        (player === 'x' && turn.children[tile].score < turn.score) ||
-        (player === 'o' && turn.children[tile].score > turn.score)) {
-        turn.score = turn.children[tile].score;
+      if (retValue[1] === null ||
+        (player === 'x' && child[1] < retValue[1]) ||
+        (player === 'o' && child[1] > retValue[1])) {
+        retValue[1] = child[1];
+        retValue[0] = child[2];
       }
     });
   }
-  return turn; // currently returning the children, goal: return best child?
+  return retValue;
 }
 
 window.addEventListener('load', () => {
@@ -163,27 +153,14 @@ function getHardAITurn ({turns, ai, ...state}) {
       ? 5 // if ai is 'o', try going in the middle
       : pickRandomCorner(); // if the middle is taken, then take a corner
   } else {
-    const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-    const currentGameTree = getStateChildren(
-      allMoves.filter(
+    return getStateChildren(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
         move => !state.x.includes(move) && !state.o.includes(move)
-      ), state[getOtherPlayer(ai)], state[ai], 0);
-// TODO: refactor getStateChildren to return the key so it can be used here
-    // console.log(currentGameTree)
-    var finalTurn;
-    var finalScore = true;
-    for (var key in currentGameTree.children) {
-      const possibleTurn = currentGameTree.children[key];
-      if (finalScore === true ||
-        (ai === 'x' && possibleTurn.score > finalScore) ||
-        (ai === 'o' && possibleTurn.score < finalScore) ||
-        (possibleTurn.score === finalScore && Math.floor(Math.random() * 2) === 1)) {
-        // console.log(possibleTurn + ''s score is ' + possibleTurn.score + ' and is less than ' + finalScore)
-        finalTurn = key;
-        finalScore = possibleTurn.score;
-      }
-    }
-    return parseInt(finalTurn);
+      ),
+      state[getOtherPlayer(ai)],
+      state[ai],
+      0
+    )[0];
   }
 
   function pickRandomCorner () {
