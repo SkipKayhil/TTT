@@ -56,7 +56,14 @@ window.addEventListener('load', () => {
 });
 
 function setupGame (aiSetting) {
-  const tileClicked = setupGameState(aiSetting);
+  const defaultState = {
+    x: [],
+    o: [],
+    turns: 0,
+    nextPlayer: 'x',
+    ai: aiSetting
+  };
+  const tileClicked = setupGameState(defaultState, aiSetting);
 
   getElementArray('tile').forEach((tile) => {
     tile.onclick = () => tileClicked(parseInt(tile.id));
@@ -65,21 +72,15 @@ function setupGame (aiSetting) {
     while (tile.firstChild) tile.removeChild(tile.firstChild);
   });
 
-  if (aiSetting === 'x') doAITurn(tileClicked);
+  if (aiSetting === 'x') doAITurn(tileClicked, defaultState);
 }
 
 function getOtherPlayer (currentTurn) {
   return currentTurn === 'x' ? 'o' : 'x';
 }
 
-function setupGameState (aiSetting) {
-  let state = {
-    x: [],
-    o: [],
-    turns: 0,
-    nextPlayer: 'x',
-    ai: aiSetting
-  };
+function setupGameState (defaultState, aiSetting) {
+  let state = defaultState;
 
   return function tileClicked (tileID) {
     const tile = document.getElementById(tileID);
@@ -109,35 +110,35 @@ function setupGameState (aiSetting) {
     } else if (state.turns === 9) {
       gameOver(state.ai);
     } else if (state.nextPlayer === state.ai) {
-      doAITurn(tileClicked, state.ai);
+      doAITurn(tileClicked, state);
     }
   }
 }
 
-function doAITurn (tileClicked, aiPlayer, currentAIMode) {
-  tileClicked(getHardAITurn(aiPlayer));
+function doAITurn (tileClicked, state, currentAIMode) {
+  tileClicked(getHardAITurn(state));
 }
 
-function getEasyAITurn () {
+function getEasyAITurn ({x, o}) {
   const rand = Math.floor(Math.random() * 9) + 1;
 
-  return document.getElementById(rand).className.includes('empty')
+  return !x.includes(rand) && !o.includes(rand)
     ? rand
-    : getEasyAITurn();
+    : getEasyAITurn({x, o});
 }
 
-function getMedAITurn (aiPlayer) {
+function getMedAITurn ({ai, ...state}) {
   // try to Win
-  const winningMove = findThirdTile(getIdArray(aiPlayer));
+  const winningMove = findThirdTile(state[ai]);
   if (winningMove != null) return winningMove;
 
   // try to not lose
-  const blockingMove = findThirdTile(getIdArray(getOtherPlayer(aiPlayer)));
+  const blockingMove = findThirdTile(state[getOtherPlayer(ai)]);
   if (blockingMove != null) return blockingMove;
 
   // else random
   console.log('this turn is random');
-  return getEasyAITurn();
+  return getEasyAITurn(state);
 
   function findThirdTile (squareArr) {
     if (squareArr.length < 2) return null;
@@ -153,41 +154,36 @@ function getMedAITurn (aiPlayer) {
   }
 }
 
-// elements of the state needed:
-// - turns (if length = 9 or 8 then do something)
-// - x and o tiles
-// - aiPlayer
-function getHardAITurn (player) {
+function getHardAITurn ({turns, ai, ...state}) {
   // Skynet came online 2016/11/19 at 19:43:07
-  if (document.getElementsByClassName('empty').length === 9) {
-    // if every tile is empty, pick a random corner
-    return pickRandomCorner();
-  } else if (document.getElementsByClassName('empty').length === 8) {
-    return document.getElementById(5).className.includes('empty')
-      ? 5
-      : pickRandomCorner();
+  if (turns === 0) {
+    return pickRandomCorner(); // if every tile is empty, pick a random corner
+  } else if (turns === 1) {
+    return !state.x.includes(5) && !state.o.includes(5)
+      ? 5 // if ai is 'o', try going in the middle
+      : pickRandomCorner(); // if the middle is taken, then take a corner
   } else {
     const allMoves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     const currentGameTree = getStateChildren(
       allMoves.filter(
-        x => document.getElementById(x).className.includes('empty')
-      ), getIdArray(getOtherPlayer(player)), getIdArray(player), 0);
+        move => !state.x.includes(move) && !state.o.includes(move)
+      ), state[getOtherPlayer(ai)], state[ai], 0);
 // TODO: refactor getStateChildren to return the key so it can be used here
-      // console.log(currentGameTree)
+    // console.log(currentGameTree)
     var finalTurn;
     var finalScore = true;
     for (var key in currentGameTree.children) {
       const possibleTurn = currentGameTree.children[key];
       if (finalScore === true ||
-        (player === 'x' && possibleTurn.score > finalScore) ||
-        (player === 'o' && possibleTurn.score < finalScore) ||
+        (ai === 'x' && possibleTurn.score > finalScore) ||
+        (ai === 'o' && possibleTurn.score < finalScore) ||
         (possibleTurn.score === finalScore && Math.floor(Math.random() * 2) === 1)) {
         // console.log(possibleTurn + ''s score is ' + possibleTurn.score + ' and is less than ' + finalScore)
         finalTurn = key;
         finalScore = possibleTurn.score;
       }
     }
-    return finalTurn;
+    return parseInt(finalTurn);
   }
 
   function pickRandomCorner () {
@@ -200,14 +196,6 @@ function getElementArray (className) {
   // getElementsByClassName returns a NodeList, which doesn't universally
   // support forEach yet.
   return Array.from(document.getElementsByClassName(className));
-}
-
-// used to get the tiles of a player... if this gets held
-// in the functions state then it becomes unneccessary and cleaner?
-function getIdArray (player) {
-  return getElementArray(player).map((element) => {
-    return element.id;
-  });
 }
 
 function checkWin (numbers, partial) {
