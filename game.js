@@ -13,7 +13,7 @@
 'use strict';
 
 function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
-  const retValue = [null, null, tileID]; // 0: best move, 1: score, 2: tileID
+  const retValue = [0, null, tileID]; // 0: best move, 1: score, 2: tileID
   const depth = playerTiles.length + opponentTiles.length;
   const player = depth % 2 === 1 ? 'x' : 'o';
 
@@ -23,6 +23,7 @@ function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
     // if the depth is 9 and not a win, then its a tie
     retValue[1] = 0;
   } else {
+    let possible = [];
     tilesLeft.forEach(tile => {
       const child = getStateChildren(
         tilesLeft.filter(x => x !== tile),
@@ -30,13 +31,21 @@ function getStateChildren (tilesLeft, playerTiles, opponentTiles, tileID) {
         playerTiles,
         tile
       );
-      if (retValue[1] === null ||
-        (player === 'x' && child[1] < retValue[1]) ||
-        (player === 'o' && child[1] > retValue[1])) {
-        retValue[1] = child[1];
-        retValue[0] = child[2];
+      //add a '[]' to retValue initialization to use this
+      //retValue[3] = [...retValue[3], child]; //[3] is the child array
+      if (possible.length === 0 ||
+        (player === 'x' && child[1] < possible[0][1]) ||
+        (player === 'o' && child[1] > possible[0][1])) {
+          // if this is the first child, or the score is better,
+          // then add the child to possible children
+          possible = [child];
+      } else if (child[1] == possible[0][1]) {
+        possible = [...possible, child];
       }
     });
+    const choice = possible[Math.floor(Math.random() * possible.length)];
+    retValue[0] = choice[2];
+    retValue[1] = choice[1];
   }
   return retValue;
 }
@@ -153,14 +162,16 @@ function getHardAITurn ({turns, ai, ...state}) {
       ? 5 // if ai is 'o', try going in the middle
       : pickRandomCorner(); // if the middle is taken, then take a corner
   } else {
-    return getStateChildren(
+    const turn = getStateChildren(
       [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
         move => !state.x.includes(move) && !state.o.includes(move)
       ),
       state[getOtherPlayer(ai)],
       state[ai],
       0
-    )[0];
+    );
+    //console.log(turn);
+    return turn[0];
   }
 
   function pickRandomCorner () {
