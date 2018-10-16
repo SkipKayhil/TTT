@@ -31,11 +31,10 @@ body {
   font-size: 4vmin;
   font-weight: 500;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  text-transform: uppercase;
   position: relative;
   background: white;
+  color: transparent;
   transition: background 0.1s ease-in-out;
   /*dp2*/
   box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
@@ -44,16 +43,18 @@ body {
 
 .tile.x {
   background: #3f51b5;
-  color: white;
 }
 .tile.o {
   background: #e91e63;
-  color: white;
 }
-.tile.enabled {
+
+#game:not(.over) .tile.empty,
+#game.over #\35 {
   cursor: pointer;
 }
-.tile.enabled::after {
+
+.tile.empty::after,
+#game.over #\35 ::after {
   content: '';
   position: absolute;
   left: 0;
@@ -68,19 +69,31 @@ body {
   box-shadow: 0px 8px 10px 1px rgba(0, 0, 0, 0.14),
     0px 3px 14px 2px rgba(0, 0, 0, 0.12), 0px 5px 5px -3px rgba(0, 0, 0, 0.2);
 }
-.tile.enabled:hover::after {
+
+#game:not(.over) .tile.empty:hover::after,
+#game.over #\35 :hover::after {
   opacity: 1;
 }
-.tile.enabled:active::after {
+
+.tile.empty:active::after,
+#game.over #\35 :active::after {
   opacity: 0;
 }
-.tile.disabled {
+
+.over .tile {
+  color: white;
+}
+.over .tile.empty {
+  color: black;
+}
+
+.over .tile:not(.win):not(#\35) {
   box-shadow: none;
 }
-.tile.x.disabled {
+.over .tile.x:not(.win):not(#\35) {
   background: #e8eaf6;
 }
-.tile.o.disabled {
+.over .tile.o:not(.win):not(#\35) {
   background: #fce4ec;
 }
 #navbar {
@@ -95,9 +108,11 @@ body {
 }
 #settings {
   position: absolute;
+  z-index: 2;
+  top: 56px;
   right: 16px;
   padding: 8px 0px;
-  /*background: orange;*/
+  background: white;
   transition: opacity 0.2s ease-in-out;
   /*dp2*/
   box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
@@ -108,13 +123,9 @@ body {
   text-align: left;
   cursor: pointer;
   font-size: 16px;
-  background: #ffffff;
 }
 .menu-item:hover {
   background: #eeeeee;
-}
-.visible {
-  display: block;
 }
 .hidden {
   display: none;

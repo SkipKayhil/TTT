@@ -13,12 +13,64 @@
 //    - either way every tile needs to be iterated and enabled so it doesn't matter?
 'use strict';
 
+(function($, fromId) {
+  const dispatch = setupGameState(updateDOM, {
+    x: [],
+    o: [],
+    ai: 'off',
+    over: false
+  });
+
+  $('.tile').forEach(tile =>
+    tile.addEventListener('click', e =>
+      dispatch({ type: 'tile', id: +tile.id })
+    )
+  );
+
+  $('.menu-item').forEach(item =>
+    item.addEventListener('click', e =>
+      dispatch({ type: 'setting', ai: item.id.replace('ai-', '') })
+    )
+  );
+
+  fromId('settings-btn').addEventListener('click', e => {
+    const menu = fromId('settings');
+    menu.classList.remove('hidden');
+    window.addEventListener('click', e => menu.classList.add('hidden'), {
+      once: true,
+      capture: true
+    });
+  });
+
+  function updateDOM(state, newState, player) {
+    if (newState.over && !state.over) {
+      fromId('game').classList.add('over');
+      newState.winningTiles.forEach(tile => fromId(tile).classList.add('win'));
+      if (newState.winningTiles) {
+        console.log(player + ' has won!');
+      }
+    } else if (newState.x.length === 0 && state.x.length !== 0) {
+      console.log('RESET BOARD');
+      fromId('game').classList.remove('over');
+      $('.tile').forEach(tile => (tile.className = 'tile empty'));
+    }
+
+    if (newState[player].length > state[player].length) {
+      console.log(player + ` clicked on ${newState[player].slice(-1)[0]}`);
+      fromId(newState[player].slice(-1)[0]).classList.replace('empty', player);
+    }
+  }
+})(
+  document.querySelectorAll.bind(document),
+  document.getElementById.bind(document)
+);
+
 function getStateChildren(tilesLeft, playerTiles, opponentTiles, tileID) {
   const retValue = [0, null, tileID]; // 0: best move, 1: score, 2: tileID
   const depth = playerTiles.length + opponentTiles.length;
   const player = depth % 2 === 1 ? 'x' : 'o';
 
-  if (checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1))) {
+  if (checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1)).length > 0) {
     retValue[1] = (10 - depth) * (player === 'x' ? 1 : -1);
   } else if (depth === 9) {
     // if the depth is 9 and not a win, then its a tie
@@ -53,105 +105,84 @@ function getStateChildren(tilesLeft, playerTiles, opponentTiles, tileID) {
   return retValue;
 }
 
-window.addEventListener('load', () => {
-  setupGame('off');
-});
-
-function setupGame(aiSetting) {
-  const defaultState = {
-    x: [],
-    o: [],
-    turns: 0,
-    nextPlayer: 'x',
-    ai: aiSetting
-  };
-  const tileClicked = setupGameState(defaultState, aiSetting);
-
-  getElementArray('tile').forEach(tile => {
-    tile.onclick = () => tileClicked(parseInt(tile.id));
-    tile.className = 'tile empty enabled';
-
-    while (tile.firstChild) tile.removeChild(tile.firstChild);
-  });
-
-  if (aiSetting === 'x') doAITurn(tileClicked, defaultState);
-}
-
 function getOtherPlayer(currentTurn) {
   return currentTurn === 'x' ? 'o' : 'x';
 }
 
-function setupGameState(defaultState, aiSetting) {
+function setupGameState(updateDOM, defaultState) {
   let state = defaultState;
 
-  return function tileClicked(tileID) {
-    const tile = document.getElementById(tileID);
-    const player = state.nextPlayer;
-    const check = checkWin(state[player], [tileID]);
+  const getPlayer = ({ x, o }) => (x.length > o.length ? 'x' : 'o');
 
-    state = {
-      ...state,
-      [player]: [...state[player], tileID],
-      turns: state.turns + 1,
-      nextPlayer: player === 'x' ? 'o' : 'x'
-    };
+  return function dispatch(action) {
+    const newState = updateState(state, action);
 
-    console.log(player + ' clicked on ' + tileID);
+    updateDOM(state, newState, getPlayer(newState));
+
+    state = newState;
     console.log('State:', state);
 
-    tile.className = tile.className.replace('empty enabled', player);
-    tile.onclick = () => {};
-    if (check) {
-      console.log(player + ' has won!');
-
-      check.forEach(tile => {
-        document.getElementById(tile).className += ' win';
-      });
-
-      gameOver(state.ai);
-    } else if (state.turns === 9) {
-      gameOver(state.ai);
-    } else if (state.nextPlayer === state.ai) {
-      doAITurn(tileClicked, state);
+    if (getOtherPlayer(getPlayer(state)) === state.ai && !state.over) {
+      dispatch({ type: 'tile', id: getAITurn()(state) });
     }
   };
+
+  function updateState(state, action) {
+    switch (action.type) {
+      case 'tile':
+        return { ...updateStateTile(state, action), ai: state.ai };
+      case 'setting':
+        return { ...defaultState, ai: action.ai };
+    }
+
+    function updateStateTile(state, { id }) {
+      if (state.over) return id === 5 ? defaultState : state;
+      else if (state.x.concat(state.o).includes(id)) return state;
+      else {
+        const player = state.x.length > state.o.length ? 'o' : 'x';
+        // const winningTiles = checkWin(state[player], [id]);
+        const winningTiles = winWrapper(state[player].concat(id));
+        return {
+          x: state.x.concat(player === 'x' ? id : []),
+          o: state.o.concat(player === 'o' ? id : []),
+          over: winningTiles.length > 0 || state.o.length === 4,
+          winningTiles
+        };
+      }
+    }
+  }
 }
 
-function doAITurn(tileClicked, state, currentAIMode) {
-  tileClicked(getHardAITurn(state));
+function getAITurn(difficulty) {
+  switch (difficulty) {
+    case 'easy':
+      return getEasyAITurn;
+    case 'medium':
+      return getMedAITurn;
+    default:
+      return getHardAITurn;
+  }
 }
 
 function getEasyAITurn({ x, o }) {
-  const rand = Math.floor(Math.random() * 9) + 1;
-
-  return !x.includes(rand) && !o.includes(rand)
-    ? rand
-    : getEasyAITurn({ x, o });
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(i => !x.concat(o).includes(i))[
+    Math.floor(Math.random() * (9 - (x.length + o.length)))
+  ];
 }
 
 function getMedAITurn({ ai, ...state }) {
-  // try to Win
-  const winningMove = findThirdTile(state[ai]);
-  if (winningMove != null) return winningMove;
-
-  // try to not lose
-  const blockingMove = findThirdTile(state[getOtherPlayer(ai)]);
-  if (blockingMove != null) return blockingMove;
-
-  // else random
-  console.log('this turn is random');
-  return getEasyAITurn(state);
+  return (
+    findThirdTile(state[ai]) || // try to win
+    findThirdTile(state[getOtherPlayer(ai)]) || // try not to lose
+    getEasyAITurn(state) // else random
+  );
 
   function findThirdTile(squareArr) {
     if (squareArr.length < 2) return null;
     for (var i = 0; i < squareArr.length - 1; i++) {
       for (var j = i + 1; j < squareArr.length; j++) {
         const id = 15 - squareArr[i] - squareArr[j];
-        if (
-          id > 0 &&
-          id < 10 &&
-          document.getElementById(id).className.includes('empty')
-        ) {
+        if (id > 0 && id < 10 && !state.x.concat(state.o).includes(id)) {
           return id;
         }
       }
@@ -159,25 +190,26 @@ function getMedAITurn({ ai, ...state }) {
   }
 }
 
-function getHardAITurn({ turns, ai, ...state }) {
+function getHardAITurn({ ai, ...state }) {
   // Skynet came online 2016/11/19 at 19:43:07
-  if (turns === 0) {
-    return pickRandomCorner(); // if every tile is empty, pick a random corner
-  } else if (turns === 1) {
-    return !state.x.includes(5) && !state.o.includes(5)
-      ? 5 // if ai is 'o', try going in the middle
-      : pickRandomCorner(); // if the middle is taken, then take a corner
-  } else {
-    const turn = getStateChildren(
-      [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
-        move => !state.x.includes(move) && !state.o.includes(move)
-      ),
-      state[getOtherPlayer(ai)],
-      state[ai],
-      0
-    );
-    //console.log(turn);
-    return turn[0];
+  switch (state.x.length + state.o.length) {
+    case 0:
+      return pickRandomCorner();
+    case 1:
+      return !state.x.includes(5) && !state.o.includes(5)
+        ? 5
+        : pickRandomCorner();
+    default:
+      const turn = getStateChildren(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
+          move => !state.x.concat(state.o).includes(move)
+        ),
+        state[getOtherPlayer(ai)],
+        state[ai],
+        0
+      );
+      //console.log(turn);
+      return turn[0];
   }
 
   function pickRandomCorner() {
@@ -185,76 +217,57 @@ function getHardAITurn({ turns, ai, ...state }) {
   }
 }
 
-function getElementArray(className) {
-  // This is literally just a wrapper to allow forEach usage.
-  // getElementsByClassName returns a NodeList, which doesn't universally
-  // support forEach yet.
-  return Array.from(document.getElementsByClassName(className));
+function getWinningTiles(board, x, y) {
+  return [[x, x + 3, x + 6], [3 * y, 3 * y + 1, 3 * y + 2]]
+    .concat(x === y ? [[0, 4, 8]] : [])
+    .concat(x + y === 2 ? [[2, 4, 6]] : [])
+    .reduce(
+      (ret, tiles) =>
+        ret.concat(
+          tiles.every(t => board[t] === board[tiles[0]])
+            ? tiles.filter(i => !ret.includes(i))
+            : []
+        ),
+      []
+    );
 }
 
-function checkWin(numbers, partial) {
-  //  Goal: return array of winning tile values
-  //  if there are no winning values, return false
-  var sum;
-  var winningTiles = [];
+function getPlayerWin(playerTiles, x, y) {
+  const reduce = tiles => (acc, cur) =>
+    acc.concat(
+      cur.every(t => tiles.includes(t)) ? cur.filter(i => !acc.includes(i)) : []
+    );
 
-  partial = partial || [];
+  return [[x, x + 3, x + 6], [3 * y, 3 * y + 1, 3 * y + 2]]
+    .concat(x === y ? [[0, 4, 8]] : [])
+    .concat(x + y === 2 ? [[2, 4, 6]] : [])
+    .reduce(reduce(playerTiles), []);
+}
 
-  sum = partial.reduce((a, b) => {
-    return parseInt(a, 10) + parseInt(b, 10);
-  }, 0);
+function checkWin(numbers, partial = []) {
+  const sum = partial.reduce((a, b) => a + b, 0);
 
   if (sum === 15 && partial.length === 3) return partial;
+  else if (sum >= 15 || partial.length > 2) return [];
 
-  if (sum >= 15 || partial.length > 2) return false;
-
-  for (var i = 0; i < numbers.length; i++) {
-    const n = numbers[i];
-    const remaining = numbers.slice(i + 1);
-    const check = checkWin(remaining, partial.concat([n]));
-    if (check) {
-      check.forEach(winningTile => {
-        if (winningTiles.indexOf(winningTile) === -1) {
-          winningTiles = winningTiles.concat(winningTile);
-        }
-      });
-    }
-  }
-  return winningTiles.length === 0 ? false : winningTiles;
+  return numbers.reduce(
+    (a, num) =>
+      checkWin(numbers.filter(n => n != num), partial.concat(num))
+        .filter(n => !a.includes(n))
+        .concat(a),
+    []
+  );
 }
 
-// Possibly deprecate this, it's only used once
-function gameOver(aiSetting) {
-  getElementArray('tile').forEach(tile => {
-    if (tile.id === '5') {
-      tile.onclick = () => {
-        setupGame(aiSetting);
-      };
-
-      tile.appendChild(
-        document
-          .createElement('DIV')
-          .appendChild(document.createTextNode('NEW GAME'))
-      );
-
-      if (!tile.className.includes('enabled')) tile.className += ' enabled';
-    } else {
-      tile.onclick = () => {};
-      tile.className = tile.className.replace(' enabled', '');
-      if (!tile.className.includes('win')) tile.className += ' disabled';
-    }
-  });
-}
-
-function toggleSettingsMenu() {
-  document.getElementById('settings').className =
-    document.getElementById('settings').className === 'hidden'
-      ? 'visible'
-      : 'hidden';
-}
-
-function settingClicked(aiSetting) {
-  console.log('AI is ' + aiSetting);
-  toggleSettingsMenu();
-  setupGame(aiSetting);
+// TODO: delete after conversion is done
+function winWrapper(playerTiles) {
+  const convert = index => [, 5, 0, 7, 6, 4, 2, 1, 8, 3][index];
+  const unconvert = index => [2, 7, 6, 9, 5, 1, 4, 3, 8][index];
+  console.log('new wrapper');
+  // return checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1));
+  return getPlayerWin(
+    playerTiles.map(convert),
+    convert(playerTiles.slice(-1)[0]) % 3,
+    Math.floor(convert(playerTiles.slice(-1)[0]) / 3)
+  ).map(unconvert);
 }
