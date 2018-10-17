@@ -1,37 +1,29 @@
 html,
 body {
   margin: 0;
-  padding: 0;
 
   background: #fafafa;
   font-family: 'Roboto', sans-serif;
   height: 100%;
 }
+
 #container {
   display: flex;
   flex-flow: column nowrap;
   justify-content: space-between;
-  align-items: center;
-  text-align: center;
   height: 100%;
-  width: 100%;
 }
+
 #game {
   display: flex;
-  font-size: 0;
-  justify-content: space-around;
   flex-flow: row wrap;
-  align-self: center;
-  /*margin: 2vmin;*/
+  margin: 0 auto;
 }
+
 .tile {
-  margin: 2%;
-  width: 29%;
-  height: 29%;
-  font-size: 4vmin;
-  font-weight: 500;
-  text-align: center;
-  text-transform: uppercase;
+  margin: 1.66%;
+  width: 30%;
+  padding-bottom: 30%;
   position: relative;
   background: white;
   color: transparent;
@@ -41,13 +33,25 @@ body {
     0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
 }
 
+#\35 ::before {
+  content: 'NEW GAME';
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
 .tile.x {
   background: #3f51b5;
 }
+
 .tile.o {
   background: #e91e63;
 }
 
+.button,
 #game:not(.over) .tile.empty,
 #game.over #\35 {
   cursor: pointer;
@@ -57,12 +61,8 @@ body {
 #game.over #\35 ::after {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
   /*dp8*/
@@ -70,19 +70,15 @@ body {
     0px 3px 14px 2px rgba(0, 0, 0, 0.12), 0px 5px 5px -3px rgba(0, 0, 0, 0.2);
 }
 
-#game:not(.over) .tile.empty:hover::after,
-#game.over #\35 :hover::after {
+#game:not(.over) .tile.empty:hover:not(:active)::after,
+#game.over #\35 :hover:not(:active)::after {
   opacity: 1;
-}
-
-.tile.empty:active::after,
-#game.over #\35 :active::after {
-  opacity: 0;
 }
 
 .over .tile {
   color: white;
 }
+
 .over .tile.empty {
   color: black;
 }
@@ -90,27 +86,32 @@ body {
 .over .tile:not(.win):not(#\35) {
   box-shadow: none;
 }
+
 .over .tile.x:not(.win):not(#\35) {
   background: #e8eaf6;
 }
+
 .over .tile.o:not(.win):not(#\35) {
   background: #fce4ec;
 }
+
 #navbar {
-  width: 100%;
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
+  height: 64px;
 }
+
 .button {
-  cursor: pointer;
+  padding: 12px;
+  margin: 8px 12px;
   color: #424242;
 }
+
 #settings {
   position: absolute;
   z-index: 2;
-  top: 56px;
-  right: 16px;
+  top: 64px;
+  right: 12px;
   padding: 8px 0px;
   background: white;
   transition: opacity 0.2s ease-in-out;
@@ -118,59 +119,46 @@ body {
   box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
     0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
 }
+
 .menu-item {
   padding: 20px 16px;
-  text-align: left;
   cursor: pointer;
-  font-size: 16px;
 }
+
 .menu-item:hover {
   background: #eeeeee;
 }
+
 .hidden {
   display: none;
 }
+
 @media screen and (orientation: portrait) {
   #game {
     height: 96vw;
     width: 96vw;
   }
 }
+
 @media screen and (orientation: landscape) {
   #game {
     height: 80vh;
     width: 80vh;
   }
 }
-@media screen and (orientation: landscape) and (max-width: 960px) {
-  #navbar,
-  #footer {
-    height: 48px;
-  }
-  .button {
-    margin: 0px 12px;
-    padding: 12px;
-  }
-}
-@media screen and (orientation: portrait) and (max-width: 600px) {
+
+@media (max-width: 599px) {
   #navbar,
   #footer {
     height: 56px;
   }
+
   .button {
-    margin: 0px;
-    padding: 16px;
+    margin: 4px;
   }
-}
-/* tablets */
-@media screen and (orientation: landscape) and (min-width: 961px),
-  (orientation: portrait) and (min-width: 601px) {
-  #navbar,
-  #footer {
-    height: 64px;
-  }
-  .button {
-    margin: 4px 8px;
-    padding: 16px;
+
+  #settings {
+    top: 56px;
+    right: 4px;
   }
 }
