@@ -65,44 +65,53 @@
   document.getElementById.bind(document)
 );
 
-function getStateChildren(tilesLeft, playerTiles, opponentTiles, tileID) {
-  const retValue = [0, null, tileID]; // 0: best move, 1: score, 2: tileID
-  const depth = playerTiles.length + opponentTiles.length;
-  const player = depth % 2 === 1 ? 'x' : 'o';
+function getTurnFromState(ai, { x, o }) {
+  const [aiTiles, humanTiles] = ai === 'x' ? [x, o] : [o, x];
+  return getStateChildren(
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(i => !x.concat(o).includes(i)),
+    humanTiles.slice(0, -1),
+    aiTiles,
+    humanTiles[humanTiles.length - 1]
+  ).best;
+}
 
-  if (checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1)).length > 0) {
-    retValue[1] = (10 - depth) * (player === 'x' ? 1 : -1);
+function getStateChildren(empty, playerTiles, opponentTiles, tileID) {
+  // let children = [];
+  const depth = playerTiles.length + opponentTiles.length + 1;
+
+  if (
+    depth > 4 &&
+    winWrapper(playerTiles.concat(tileID), tileID % 3, tileID / 3).length > 0
+  ) {
+    return { score: (10 - depth) * (depth % 2 === 1 ? 1 : -1) };
   } else if (depth === 9) {
-    // if the depth is 9 and not a win, then its a tie
-    retValue[1] = 0;
+    return { score: 0 }; // if the depth is 9 and not a win, then its a tie
   } else {
-    let possible = [];
-    tilesLeft.forEach(tile => {
-      const child = getStateChildren(
-        tilesLeft.filter(x => x !== tile),
-        opponentTiles.concat(tile),
-        playerTiles,
-        tile
-      );
-      //add a '[]' to retValue initialization to use this
-      //retValue[3] = [...retValue[3], child]; //[3] is the child array
-      if (
-        possible.length === 0 ||
-        (player === 'x' && child[1] < possible[0][1]) ||
-        (player === 'o' && child[1] > possible[0][1])
-      ) {
-        // if this is the first child, or the score is better,
-        // then add the child to possible children
-        possible = [child];
-      } else if (child[1] == possible[0][1]) {
-        possible = [...possible, child];
-      }
-    });
-    const choice = possible[Math.floor(Math.random() * possible.length)];
-    retValue[0] = choice[2];
-    retValue[1] = choice[1];
+    const mult = depth % 2 === 1 ? -1 : 1;
+    const ret = randomFrom(
+      empty.reduce((acc, cur) => {
+        const index = empty.indexOf(cur);
+        const { score } = getStateChildren(
+          empty.slice(0, index).concat(empty.slice(index + 1, empty.length)),
+          opponentTiles,
+          playerTiles.concat(tileID),
+          cur
+        );
+        // children = children.concat({ score, tileID: cur });
+        if (acc.length === 0 || score * mult > acc[0].score * mult) {
+          return [{ score, best: cur }];
+        } else if (score === acc[0].score) {
+          return acc.concat({ score, best: cur });
+        } else return acc;
+      }, [])
+    );
+    // ret.children = children;
+    return ret;
   }
-  return retValue;
+}
+
+function randomFrom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function getOtherPlayer(currentTurn) {
@@ -165,9 +174,9 @@ function getAITurn(difficulty) {
 }
 
 function getEasyAITurn({ x, o }) {
-  return [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(i => !x.concat(o).includes(i))[
-    Math.floor(Math.random() * (9 - (x.length + o.length)))
-  ];
+  return randomFrom(
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(i => !x.concat(o).includes(i))
+  );
 }
 
 function getMedAITurn({ ai, ...state }) {
@@ -200,20 +209,11 @@ function getHardAITurn({ ai, ...state }) {
         ? 5
         : pickRandomCorner();
     default:
-      const turn = getStateChildren(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
-          move => !state.x.concat(state.o).includes(move)
-        ),
-        state[getOtherPlayer(ai)],
-        state[ai],
-        0
-      );
-      //console.log(turn);
-      return turn[0];
+      return getTurnFromState(ai, state);
   }
 
   function pickRandomCorner() {
-    return (Math.floor(Math.random() * 4) + 1) * 2;
+    return randomFrom([2, 4, 6, 8]);
   }
 }
 
@@ -263,7 +263,6 @@ function checkWin(numbers, partial = []) {
 function winWrapper(playerTiles) {
   const convert = index => [, 5, 0, 7, 6, 4, 2, 1, 8, 3][index];
   const unconvert = index => [2, 7, 6, 9, 5, 1, 4, 3, 8][index];
-  console.log('new wrapper');
   // return checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1));
   return getPlayerWin(
     playerTiles.map(convert),
