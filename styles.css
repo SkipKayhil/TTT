@@ -99,19 +99,23 @@ body {
 #navbar {
   display: flex;
   justify-content: space-between;
-  height: 64px;
+}
+
+#navbar,
+#footer {
+  height: 56px;
 }
 
 .button {
   padding: 12px;
-  margin: 8px 12px;
+  margin: 4px;
 }
 
 #settings {
   position: absolute;
   z-index: 2;
-  top: 64px;
-  right: 12px;
+  top: 56px;
+  right: 4px;
   padding: 8px 0px;
   background: white;
   transition: opacity 0.2s ease-in-out;
@@ -147,18 +151,18 @@ body {
   }
 }
 
-@media (max-width: 599px) {
+@media (min-width: 600px) {
   #navbar,
   #footer {
-    height: 56px;
-  }
-
-  .button {
-    margin: 4px;
+    height: 64px;
   }
 
   #settings {
-    top: 56px;
-    right: 4px;
+    top: 64px;
+    right: 12px;
+  }
+
+  .button {
+    margin: 8px 12px;
   }
 }
