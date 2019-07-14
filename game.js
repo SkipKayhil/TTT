@@ -18,17 +18,17 @@
     over: false
   });
 
-  $('.tile').forEach(tile =>
-    tile.addEventListener('click', e =>
-      dispatch({ type: 'tile', id: +tile.id })
-    )
-  );
+  fromId('container').addEventListener('click', e => {
+    if (e.target && e.target.classList.contains('tile')) {
+      dispatch({ type: 'tile', id: +e.target.id });
+    }
+  });
 
-  $('.menu-item').forEach(item =>
-    item.addEventListener('click', e =>
-      dispatch({ type: 'setting', ai: item.id.replace('ai-', '') })
-    )
-  );
+  fromId('settings').addEventListener('click', e => {
+    if (e.target && e.target.classList.contains('menu-item')) {
+      dispatch({ type: 'setting', ai: e.target.id.replace('ai-', '') });
+    }
+  });
 
   fromId('settings-btn').addEventListener('click', e => {
     const menu = fromId('settings');
@@ -214,21 +214,6 @@ function getHardAITurn({ ai, ...state }) {
   }
 }
 
-// function getWinningTiles(board, x, y) {
-//   return [[x, x + 3, x + 6], [3 * y, 3 * y + 1, 3 * y + 2]]
-//     .concat(x === y ? [[0, 4, 8]] : [])
-//     .concat(x + y === 2 ? [[2, 4, 6]] : [])
-//     .reduce(
-//       (ret, tiles) =>
-//         ret.concat(
-//           tiles.every(t => board[t] === board[tiles[0]])
-//             ? tiles.filter(i => !ret.includes(i))
-//             : []
-//         ),
-//       []
-//     );
-// }
-
 function getPlayerWin(playerTiles, { x, y }) {
   const reduce = tiles => (acc, cur) =>
     acc.concat(
@@ -240,30 +225,3 @@ function getPlayerWin(playerTiles, { x, y }) {
     .concat(x + y === 2 ? [[2, 4, 6]] : [])
     .reduce(reduce(playerTiles), []);
 }
-
-// function checkWin(numbers, partial = []) {
-//   const sum = partial.reduce((a, b) => a + b, 0);
-
-//   if (sum === 15 && partial.length === 3) return partial;
-//   else if (sum >= 15 || partial.length > 2) return [];
-
-//   return numbers.reduce(
-//     (a, num) =>
-//       checkWin(numbers.filter(n => n != num), partial.concat(num))
-//         .filter(n => !a.includes(n))
-//         .concat(a),
-//     []
-//   );
-// }
-
-// TODO: delete after conversion is done
-// function winWrapper(playerTiles) {
-//   const convert = index => [, 5, 0, 7, 6, 4, 2, 1, 8, 3][index];
-//   const unconvert = index => [2, 7, 6, 9, 5, 1, 4, 3, 8][index];
-//   // return checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1));
-//   return getPlayerWin(
-//     playerTiles.map(convert),
-//     convert(playerTiles.slice(-1)[0]) % 3,
-//     Math.floor(convert(playerTiles.slice(-1)[0]) / 3)
-//   ).map(unconvert);
-// }
