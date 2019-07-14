@@ -1,16 +1,13 @@
 // TODO:
 // - Ensure game looks nice in landscape mode -> move to Grid instead of flex
-// - Change checkwin to only check tiles in last move's row/col/(diag)
 // - Refactor getHardAITurn to use getStateChildren better
 //    - additional optimizations to getStateChildren
 //      - add tests so that the debug information isn't needed
 // - Add functionality to set AI difficulty (Easy, Good, Hard)
 // - Refactor variables so code is more readable/clean up code
 // - Add safari prefixes?
-// - Add mobile touch support
 // - make the tileIDs rotate so gameTree is only 4/9ths the size
-// - possibly don't overwrite tile.onclick, just enable/disable?
-//    - either way every tile needs to be iterated and enabled so it doesn't matter?
+
 'use strict';
 
 (function($, fromId) {
@@ -68,21 +65,20 @@
 function getTurnFromState(ai, { x, o }) {
   const [aiTiles, humanTiles] = ai === 'x' ? [x, o] : [o, x];
   return getStateChildren(
-    [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(i => !x.concat(o).includes(i)),
-    humanTiles.slice(0, -1),
+    [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(i => !x.concat(o).includes(i)),
+    humanTiles,
     aiTiles,
     humanTiles[humanTiles.length - 1]
   ).best;
+  // console.log(state);
+  // return state.best;
 }
 
 function getStateChildren(empty, playerTiles, opponentTiles, tileID) {
   // let children = [];
-  const depth = playerTiles.length + opponentTiles.length + 1;
+  const depth = playerTiles.length + opponentTiles.length;
 
-  if (
-    depth > 4 &&
-    winWrapper(playerTiles.concat(tileID), tileID % 3, tileID / 3).length > 0
-  ) {
+  if (depth > 4 && getPlayerWin(playerTiles, getXY(tileID)).length > 0) {
     return { score: (10 - depth) * (depth % 2 === 1 ? 1 : -1) };
   } else if (depth === 9) {
     return { score: 0 }; // if the depth is 9 and not a win, then its a tie
@@ -93,8 +89,8 @@ function getStateChildren(empty, playerTiles, opponentTiles, tileID) {
         const index = empty.indexOf(cur);
         const { score } = getStateChildren(
           empty.slice(0, index).concat(empty.slice(index + 1, empty.length)),
-          opponentTiles,
-          playerTiles.concat(tileID),
+          opponentTiles.concat(cur),
+          playerTiles,
           cur
         );
         // children = children.concat({ score, tileID: cur });
@@ -116,6 +112,10 @@ function randomFrom(arr) {
 
 function getOtherPlayer(currentTurn) {
   return currentTurn === 'x' ? 'o' : 'x';
+}
+
+function getXY(tile) {
+  return { x: tile % 3, y: Math.floor(tile / 3) };
 }
 
 function setupGameState(updateDOM, defaultState) {
@@ -145,12 +145,12 @@ function setupGameState(updateDOM, defaultState) {
     }
 
     function updateStateTile(state, { id }) {
-      if (state.over) return id === 5 ? defaultState : state;
+      if (state.over) return id === 4 ? defaultState : state;
       else if (state.x.concat(state.o).includes(id)) return state;
       else {
         const player = state.x.length > state.o.length ? 'o' : 'x';
         // const winningTiles = checkWin(state[player], [id]);
-        const winningTiles = winWrapper(state[player].concat(id));
+        const winningTiles = getPlayerWin(state[player].concat(id), getXY(id));
         return {
           x: state.x.concat(player === 'x' ? id : []),
           o: state.o.concat(player === 'o' ? id : []),
@@ -180,23 +180,22 @@ function getEasyAITurn({ x, o }) {
 }
 
 function getMedAITurn({ ai, ...state }) {
-  return (
-    findThirdTile(state[ai]) || // try to win
-    findThirdTile(state[getOtherPlayer(ai)]) || // try not to lose
-    getEasyAITurn(state) // else random
-  );
-
-  function findThirdTile(squareArr) {
-    if (squareArr.length < 2) return null;
-    for (var i = 0; i < squareArr.length - 1; i++) {
-      for (var j = i + 1; j < squareArr.length; j++) {
-        const id = 15 - squareArr[i] - squareArr[j];
-        if (id > 0 && id < 10 && !state.x.concat(state.o).includes(id)) {
-          return id;
-        }
-      }
-    }
-  }
+  // return (
+  //   findThirdTile(state[ai]) || // try to win
+  //   findThirdTile(state[getOtherPlayer(ai)]) || // try not to lose
+  //   getEasyAITurn(state) // else random
+  // );
+  // function findThirdTile(squareArr) {
+  //   if (squareArr.length < 2) return null;
+  //   for (var i = 0; i < squareArr.length - 1; i++) {
+  //     for (var j = i + 1; j < squareArr.length; j++) {
+  //       const id = 15 - squareArr[i] - squareArr[j];
+  //       if (id > 0 && id < 10 && !state.x.concat(state.o).includes(id)) {
+  //         return id;
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 function getHardAITurn({ ai, ...state }) {
@@ -205,34 +204,32 @@ function getHardAITurn({ ai, ...state }) {
     case 0:
       return pickRandomCorner();
     case 1:
-      return !state.x.includes(5) && !state.o.includes(5)
-        ? 5
-        : pickRandomCorner();
+      return !state.x.includes(4) ? 4 : pickRandomCorner();
     default:
       return getTurnFromState(ai, state);
   }
 
   function pickRandomCorner() {
-    return randomFrom([2, 4, 6, 8]);
+    return randomFrom([0, 2, 6, 8]);
   }
 }
 
-function getWinningTiles(board, x, y) {
-  return [[x, x + 3, x + 6], [3 * y, 3 * y + 1, 3 * y + 2]]
-    .concat(x === y ? [[0, 4, 8]] : [])
-    .concat(x + y === 2 ? [[2, 4, 6]] : [])
-    .reduce(
-      (ret, tiles) =>
-        ret.concat(
-          tiles.every(t => board[t] === board[tiles[0]])
-            ? tiles.filter(i => !ret.includes(i))
-            : []
-        ),
-      []
-    );
-}
+// function getWinningTiles(board, x, y) {
+//   return [[x, x + 3, x + 6], [3 * y, 3 * y + 1, 3 * y + 2]]
+//     .concat(x === y ? [[0, 4, 8]] : [])
+//     .concat(x + y === 2 ? [[2, 4, 6]] : [])
+//     .reduce(
+//       (ret, tiles) =>
+//         ret.concat(
+//           tiles.every(t => board[t] === board[tiles[0]])
+//             ? tiles.filter(i => !ret.includes(i))
+//             : []
+//         ),
+//       []
+//     );
+// }
 
-function getPlayerWin(playerTiles, x, y) {
+function getPlayerWin(playerTiles, { x, y }) {
   const reduce = tiles => (acc, cur) =>
     acc.concat(
       cur.every(t => tiles.includes(t)) ? cur.filter(i => !acc.includes(i)) : []
@@ -244,29 +241,29 @@ function getPlayerWin(playerTiles, x, y) {
     .reduce(reduce(playerTiles), []);
 }
 
-function checkWin(numbers, partial = []) {
-  const sum = partial.reduce((a, b) => a + b, 0);
+// function checkWin(numbers, partial = []) {
+//   const sum = partial.reduce((a, b) => a + b, 0);
 
-  if (sum === 15 && partial.length === 3) return partial;
-  else if (sum >= 15 || partial.length > 2) return [];
+//   if (sum === 15 && partial.length === 3) return partial;
+//   else if (sum >= 15 || partial.length > 2) return [];
 
-  return numbers.reduce(
-    (a, num) =>
-      checkWin(numbers.filter(n => n != num), partial.concat(num))
-        .filter(n => !a.includes(n))
-        .concat(a),
-    []
-  );
-}
+//   return numbers.reduce(
+//     (a, num) =>
+//       checkWin(numbers.filter(n => n != num), partial.concat(num))
+//         .filter(n => !a.includes(n))
+//         .concat(a),
+//     []
+//   );
+// }
 
 // TODO: delete after conversion is done
-function winWrapper(playerTiles) {
-  const convert = index => [, 5, 0, 7, 6, 4, 2, 1, 8, 3][index];
-  const unconvert = index => [2, 7, 6, 9, 5, 1, 4, 3, 8][index];
-  // return checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1));
-  return getPlayerWin(
-    playerTiles.map(convert),
-    convert(playerTiles.slice(-1)[0]) % 3,
-    Math.floor(convert(playerTiles.slice(-1)[0]) / 3)
-  ).map(unconvert);
-}
+// function winWrapper(playerTiles) {
+//   const convert = index => [, 5, 0, 7, 6, 4, 2, 1, 8, 3][index];
+//   const unconvert = index => [2, 7, 6, 9, 5, 1, 4, 3, 8][index];
+//   // return checkWin(playerTiles.slice(0, -1), playerTiles.slice(-1));
+//   return getPlayerWin(
+//     playerTiles.map(convert),
+//     convert(playerTiles.slice(-1)[0]) % 3,
+//     Math.floor(convert(playerTiles.slice(-1)[0]) / 3)
+//   ).map(unconvert);
+// }
